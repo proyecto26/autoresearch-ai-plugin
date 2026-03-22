@@ -1,0 +1,21 @@
+{
+  "name": "autoresearch-ai",
+  "version": "0.1.0",
+  "description": "Autonomous experiment loop for Claude Code. Run an endless optimize-measure-keep/discard cycle on any optimization target: LLM training loss, test speed, bundle size, build time, and more.",
+  "author": {
+    "name": "Proyecto 26",
+    "email": "jdnichollsc@gmail.com",
+    "url": "https://github.com/nicholls999"
+  },
+  "repository": "https://github.com/proyecto26/autoresearch-ai-plugin",
+  "license": "MIT",
+  "keywords": [
+    "autoresearch",
+    "autonomous",
+    "experiments",
+    "optimization",
+    "ml-training",
+    "gpu",
+    "benchmarking"
+  ]
+}

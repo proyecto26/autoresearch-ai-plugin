@@ -1,0 +1,16 @@
+# Autoresearch session files (generated per-project, not part of plugin)
+autoresearch.jsonl
+run.log
+results.tsv
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Claude local settings
+.claude/*.local.md
+
+# OS
+.DS_Store
+Thumbs.db
