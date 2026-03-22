@@ -234,7 +234,7 @@ Consumer GPUs use gradient checkpointing, built-in attention (no Flash Attention
 
 ---
 
-## Plugin Structure
+## 📂 Structure
 
 ```
 autoresearch-ai-plugin/
@@ -267,18 +267,28 @@ autoresearch-ai-plugin/
 
 ---
 
-## Contributing
+## 🌟 Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=proyecto26/autoresearch-ai-plugin&type=Date)](https://star-history.com/#proyecto26/autoresearch-ai-plugin-code&Date)
+
+## 💜 Sponsors
+
+This project is free and open source. Sponsors help keep it maintained and growing.
+
+[**Become a Sponsor**](https://github.com/sponsors/proyecto26) | [Sponsorship Program](https://proyecto26.com/sponsors/)
+
+## 🤝 Contribution
 
 Autoresearch AI grows with the community. Ideas for new optimization domains, better confidence scoring, or additional templates? Please open a PR!
 
-## Credits
+## 👍 Credits
 
 - [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) — Original autonomous ML research loop
 - [pi-autoresearch](https://github.com/davebcn87/pi-autoresearch) — Generalized experiment loop with streaming, ASI, and confidence scoring
 - [litesearch](https://github.com/jlippp/litesearch) — Consumer GPU optimizations and VRAM auto-scaling
 
-## Happy researching!
+## Happy vibe researching 💯
 
-Made with ❤️ by [Proyecto 26](https://github.com/proyecto26)
+Made with ❤️ by [Proyecto 26](https://proyecto26.com)
 
 <img width="150px" src="https://avatars0.githubusercontent.com/u/28855608?s=200&v=4" align="right">
