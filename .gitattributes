@@ -1,0 +1,13 @@
+# Normalize all text files to LF in the repo, native line endings on checkout
+* text=auto
+
+# Force LF for shell scripts (bash breaks on CRLF)
+*.sh text eol=lf
+
+# Force LF for markdown and JSON (consistency)
+*.md text eol=lf
+*.json text eol=lf
+
+# Binary files
+*.py text eol=lf
+*.toml text eol=lf

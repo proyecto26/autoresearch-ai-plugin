@@ -37,15 +37,20 @@ When the user triggers autoresearch, gather the following (ask if not provided):
 Then execute these setup steps:
 
 1. Create a branch: `git checkout -b autoresearch/<goal>-<date>`
-2. Read all files in scope thoroughly to understand the codebase
-3. Write `autoresearch.md` — the session document (see `examples/autoresearch.md`)
-4. Write `autoresearch.sh` — the benchmark script (see `examples/autoresearch.sh`)
-5. Optionally write `autoresearch.checks.sh` — correctness checks (tests, lint, types)
-6. Commit both files
-7. Run baseline: `bash autoresearch.sh`
-8. Parse metrics from output (lines matching `METRIC name=value`)
-9. Record baseline in `autoresearch.jsonl`
-10. Begin the experiment loop
+2. Ensure session files are gitignored (critical — `git revert` will fail if `autoresearch.jsonl` is tracked):
+   ```bash
+   echo -e "autoresearch.jsonl\nrun.log" >> .gitignore
+   git add .gitignore && git commit -m "autoresearch: add session files to gitignore"
+   ```
+3. Read all files in scope thoroughly to understand the codebase
+4. Write `autoresearch.md` — the session document (see `examples/autoresearch.md`)
+5. Write `autoresearch.sh` — the benchmark script (see `examples/autoresearch.sh`)
+6. Optionally write `autoresearch.checks.sh` — correctness checks (tests, lint, types)
+7. Commit session files
+8. Run baseline: `bash autoresearch.sh`
+9. Parse metrics from output (lines matching `METRIC name=value`)
+10. Record baseline in `autoresearch.jsonl`
+11. Begin the experiment loop
 
 ## The Experiment Loop
 
@@ -70,7 +75,7 @@ Each iteration:
 ### Decision Rules
 
 - **Metric improved** → `keep` (commit stays)
-- **Metric equal or worse** → `discard` (run `git revert HEAD --no-edit`)
+- **Metric equal or worse** → `discard` (run `git revert $(git rev-parse HEAD) --no-edit`)
 - **Crash or checks failed** → `discard` (revert, note the failure)
 - **Simpler code for equal perf** → `keep` (removing complexity is a win)
 - **If stuck** → think deeper, try a different approach. Consult `autoresearch.ideas.md` if it exists.

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "autoresearch-ai-plugin",
+  "description": "Autonomous experiment loops for Claude Code — edit, measure, keep or discard, repeat forever",
+  "owner": {
+    "name": "Proyecto 26",
+    "email": "jd@proyecto26.com"
+  },
+  "plugins": [
+    {
+      "name": "autoresearch-ai-plugin",
+      "description": "Autonomous experiment loop that edits code, runs benchmarks, measures metrics, and keeps improvements or reverts — repeating forever. Works for any optimization target: LLM training loss, test speed, bundle size, build time, Lighthouse scores, and more.",
+      "version": "0.1.0",
+      "source": "./",
+      "strict": false,
+      "skills": ["./skills/autoresearch", "./skills/autoresearch-ml"],
+      "category": "development"
+    }
+  ]
+}
