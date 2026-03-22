@@ -6,7 +6,7 @@ Edit code → commit → run benchmark → measure metric → keep improvement o
 
 Works for **any optimization target**: LLM training loss, test speed, bundle size, build time, Lighthouse scores, and more.
 
-Inspired by [Karpathy's autoresearch](https://github.com/karpathy/autoresearch), [pi-autoresearch](https://github.com/davebcn87/pi-autoresearch), and [litesearch](https://github.com/nicholasgasior/litesearch).
+Inspired by [Karpathy's autoresearch](https://github.com/karpathy/autoresearch), [pi-autoresearch](https://github.com/davebcn87/pi-autoresearch), and [litesearch](https://github.com/jlippp/litesearch).
 
 ## Skills
 
@@ -275,7 +275,7 @@ Autoresearch AI grows with the community. Ideas for new optimization domains, be
 
 - [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) — Original autonomous ML research loop
 - [pi-autoresearch](https://github.com/davebcn87/pi-autoresearch) — Generalized experiment loop with streaming, ASI, and confidence scoring
-- [litesearch](https://github.com/nicholasgasior/litesearch) — Consumer GPU optimizations and VRAM auto-scaling
+- [litesearch](https://github.com/jlippp/litesearch) — Consumer GPU optimizations and VRAM auto-scaling
 
 ## Happy researching!
 
