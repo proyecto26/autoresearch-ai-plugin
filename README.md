@@ -293,7 +293,8 @@ You can learn more about how you can contribute to this project in the [contribu
 - [litesearch](https://github.com/jlippp/litesearch) — Consumer GPU optimizations and VRAM auto-scaling
 
 ## Happy vibe researching 💯
+Made with ❤️ by [Proyecto 26](https://proyecto26.com) - Changing the world with small contributions.
 
-Made with ❤️ by [Proyecto 26](https://proyecto26.com)
+One hand can accomplish great things, but many can take you into space and beyond! 🌌
 
-<img width="150px" src="https://avatars0.githubusercontent.com/u/28855608?s=200&v=4" align="right">
+Together we do more, together we are more ❤️ <img width="150px" src="https://avatars0.githubusercontent.com/u/28855608?s=200&v=4" align="right">
