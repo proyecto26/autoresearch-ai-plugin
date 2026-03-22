@@ -37,32 +37,7 @@ This plugin provides two skills that work together. **Autoresearch** is the core
 
 ### Installation
 
-#### Option 1: Clone and Copy (Recommended)
-
-```bash
-git clone https://github.com/proyecto26/autoresearch-ai-plugin.git
-cp -r autoresearch-ai-plugin/skills/* .claude/skills/
-```
-
-#### Option 2: Git Submodule
-
-Add as a submodule for easy updates:
-
-```bash
-git submodule add https://github.com/proyecto26/autoresearch-ai-plugin.git .claude/autoresearch-ai-plugin
-```
-
-Then reference skills from `.claude/autoresearch-ai-plugin/skills/`.
-
-#### Option 3: Claude Code Plugin (Local)
-
-Test with Claude Code's plugin system:
-
-```bash
-claude --plugin-dir /path/to/autoresearch-ai-plugin
-```
-
-#### Option 4: CLI Install
+#### Option 1: CLI Install (Recommended)
 
 Use [npx skills](https://github.com/vercel-labs/skills) to install skills directly:
 
@@ -76,6 +51,37 @@ npx skills add proyecto26/autoresearch-ai-plugin --skill autoresearch autoresear
 # List available skills
 npx skills add proyecto26/autoresearch-ai-plugin --list
 ```
+
+This automatically installs to your `.claude/skills/` directory.
+
+#### Option 2: Claude Code Plugin
+
+Install via Claude Code's built-in plugin system:
+
+```bash
+# Add the marketplace
+/plugin marketplace add proyecto26/autoresearch-ai-plugin
+
+# Install the plugin
+/plugin install autoresearch-ai-plugin
+```
+
+#### Option 3: Clone and Copy
+
+```bash
+git clone https://github.com/proyecto26/autoresearch-ai-plugin.git
+cp -r autoresearch-ai-plugin/skills/* .claude/skills/
+```
+
+#### Option 4: Git Submodule
+
+Add as a submodule for easy updates:
+
+```bash
+git submodule add https://github.com/proyecto26/autoresearch-ai-plugin.git .claude/autoresearch-ai-plugin
+```
+
+Then reference skills from `.claude/autoresearch-ai-plugin/skills/`.
 
 #### Option 5: Fork and Customize
 
