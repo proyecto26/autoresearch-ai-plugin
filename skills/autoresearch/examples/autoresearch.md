@@ -6,8 +6,11 @@ Reduce the total wall-clock time of the test suite while maintaining 100% test p
 
 ## Metrics
 
-- **Primary:** total_ms (milliseconds, lower is better)
-- **Secondary:** peak_memory_mb (MB, informational)
+- **Primary:** `total_ms` (milliseconds, lower is better)
+- **Secondary:**
+  - `setup_ms` — test setup/teardown overhead
+  - `slow_tests` — count of tests taking > 1s (helps identify targets)
+  - `peak_memory_mb` — memory usage (informational)
 
 ## How to Run
 
@@ -15,7 +18,7 @@ Reduce the total wall-clock time of the test suite while maintaining 100% test p
 bash autoresearch.sh
 ```
 
-Outputs `METRIC total_ms=<value>` and `METRIC peak_memory_mb=<value>`.
+Outputs `METRIC total_ms=<value>` and secondary METRIC lines.
 
 ## Files in Scope
 
@@ -34,9 +37,14 @@ Outputs `METRIC total_ms=<value>` and `METRIC peak_memory_mb=<value>`.
 - All tests must pass (enforced by `autoresearch.checks.sh`)
 - No flaky tests — if a test intermittently fails, it's a bug to fix, not skip
 - Benchmark reports median of 3 runs to reduce timing noise
+- Do not delete or skip tests to improve the metric
 
 ## What's Been Tried
 
-| # | Description | Metric | Status | Notes |
-|---|-------------|--------|--------|-------|
-| 0 | Baseline | 12,450ms | keep | Starting point |
+| # | Description | Metric | Status | Key ASI |
+|---|-------------|--------|--------|---------|
+| 0 | Baseline | 12,450ms | keep | — |
+
+## Learnings
+
+_Update this section after every few experiments with patterns, insights, and dead ends._

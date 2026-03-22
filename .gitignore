@@ -8,7 +8,7 @@ __pycache__/
 *.pyc
 .venv/
 
-# Claude local settings
+# Claude local settings (per-project, not part of plugin)
 .claude/*.local.md
 
 # OS
