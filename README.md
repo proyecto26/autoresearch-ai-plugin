@@ -2,6 +2,8 @@
 
 > **Autonomous Experiment Loops for Claude Code — Let AI optimize while you sleep**
 
+<img src="https://github.com/proyecto26/sherlock-ai-plugin/blob/main/images/claude-mascot-jumping-animated.svg" width="150">
+
 Edit code → commit → run benchmark → measure metric → keep improvement or revert → **repeat forever**.
 
 Works for **any optimization target**: LLM training loss, test speed, bundle size, build time, Lighthouse scores, and more.
