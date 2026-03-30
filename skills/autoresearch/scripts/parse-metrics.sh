@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # parse-metrics.sh — Extract METRIC lines from benchmark output
 #
-# Usage:
-#   bash autoresearch.sh 2>&1 | bash ${CLAUDE_SKILL_DIR}/scripts/parse-metrics.sh
+# Usage (from SKILL.md, where ${CLAUDE_SKILL_DIR} is auto-resolved):
+#   bash autoresearch.sh 2>&1 | bash <path-to-this-script>/parse-metrics.sh
 #
 # Input:  Benchmark output (stdin) containing lines like "METRIC total_ms=4230"
 # Output: Clean metric lines, one per line: "total_ms=4230"
 #
 # If a metric name is passed as argument, only that metric's value is printed:
-#   bash autoresearch.sh 2>&1 | bash ${CLAUDE_SKILL_DIR}/scripts/parse-metrics.sh total_ms
+#   bash autoresearch.sh 2>&1 | bash <path-to-this-script>/parse-metrics.sh total_ms
 #   → 4230
 
 set -euo pipefail

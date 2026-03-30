@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # log-experiment.sh — Append an experiment result to autoresearch.jsonl
 #
-# Usage:
-#   bash ${CLAUDE_SKILL_DIR}/scripts/log-experiment.sh \
+# Usage (from SKILL.md, where ${CLAUDE_SKILL_DIR} is auto-resolved):
+#   bash <path-to-this-script>/log-experiment.sh \
 #     --run 5 \
 #     --commit "abc1234" \
 #     --metric 4.23 \
