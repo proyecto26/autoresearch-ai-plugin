@@ -2,6 +2,8 @@
 
 > **Autonomous Experiment Loops for Claude Code — Let AI optimize while you sleep**
 
+<img src="https://github.com/proyecto26/sherlock-ai-plugin/blob/main/images/claude-mascot-jumping-animated.svg" width="150">
+
 Edit code → commit → run benchmark → measure metric → keep improvement or revert → **repeat forever**.
 
 Works for **any optimization target**: LLM training loss, test speed, bundle size, build time, Lighthouse scores, and more.
@@ -234,7 +236,7 @@ Consumer GPUs use gradient checkpointing, built-in attention (no Flash Attention
 
 ---
 
-## Plugin Structure
+## 📂 Structure
 
 ```
 autoresearch-ai-plugin/
@@ -267,18 +269,34 @@ autoresearch-ai-plugin/
 
 ---
 
-## Contributing
+## 🌟 Star History
 
-Autoresearch AI grows with the community. Ideas for new optimization domains, better confidence scoring, or additional templates? Please open a PR!
+[![Star History Chart](https://api.star-history.com/svg?repos=proyecto26/autoresearch-ai-plugin&type=Date)](https://star-history.com/#proyecto26/autoresearch-ai-plugin-code&Date)
 
-## Credits
+## 💜 Sponsors
+
+This project is free and open source. Sponsors help keep it maintained and growing.
+
+[**Become a Sponsor**](https://github.com/sponsors/proyecto26) | [Sponsorship Program](https://proyecto26.com/sponsors/)
+
+## 🤝 Contribution
+
+When contributing to this repository, please first discuss the change you wish to make via issue,
+email, or any other method with the owners of this repository before making a change.
+ 
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated** ❤️.
+ 
+You can learn more about how you can contribute to this project in the [contribution guide](https://github.com/proyecto26/.github/blob/master/CONTRIBUTING.md).
+
+## 👍 Credits
 
 - [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) — Original autonomous ML research loop
 - [pi-autoresearch](https://github.com/davebcn87/pi-autoresearch) — Generalized experiment loop with streaming, ASI, and confidence scoring
 - [litesearch](https://github.com/jlippp/litesearch) — Consumer GPU optimizations and VRAM auto-scaling
 
-## Happy researching!
+## Happy vibe researching 💯
+Made with ❤️ by [Proyecto 26](https://proyecto26.com) - Changing the world with small contributions.
 
-Made with ❤️ by [Proyecto 26](https://github.com/proyecto26)
+One hand can accomplish great things, but many can take you into space and beyond! 🌌
 
-<img width="150px" src="https://avatars0.githubusercontent.com/u/28855608?s=200&v=4" align="right">
+Together we do more, together we are more ❤️ <img width="150px" src="https://avatars0.githubusercontent.com/u/28855608?s=200&v=4" align="right">
