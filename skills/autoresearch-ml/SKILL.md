@@ -54,7 +54,7 @@ python -c "import torch; print(f'CUDA: {torch.cuda.is_available()}, Device: {tor
 1. Create a branch: `git checkout -b autoresearch/<tag>-<date>`
 2. Ensure session files are gitignored (critical — `git revert` will fail if tracked):
    ```bash
-   echo -e "autoresearch.jsonl\nrun.log\nresults.tsv" >> .gitignore
+   echo -e "autoresearch.jsonl\nrun.log" >> .gitignore
    git add .gitignore && git commit -m "autoresearch: add session files to gitignore"
    ```
 3. Read `prepare.py` and `train.py` thoroughly to understand the codebase

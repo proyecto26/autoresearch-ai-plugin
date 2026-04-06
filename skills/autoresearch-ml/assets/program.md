@@ -1,10 +1,5 @@
 # autoresearch
 
-> **Note:** This file is a standalone reference from the original Karpathy autoresearch project.
-> It uses `results.tsv` and `git reset` conventions. The plugin's SKILL.md is the authoritative
-> source and uses `autoresearch.jsonl` and `git revert` instead. Both approaches work — the
-> SKILL.md format is preferred when using the plugin's utility scripts.
-
 This is an experiment to have the LLM do its own research.
 
 ## Setup
@@ -18,7 +13,7 @@ To set up a new experiment, work with the user to:
    - `prepare.py` — fixed constants, data prep, tokenizer, dataloader, evaluation. Do not modify.
    - `train.py` — the file you modify. Model architecture, optimizer, training loop.
 4. **Verify data exists**: Check that `~/.cache/autoresearch/` contains data shards and a tokenizer. If not, tell the human to run `uv run prepare.py`.
-5. **Initialize results.tsv**: Create `results.tsv` with just the header row. The baseline will be recorded after the first run.
+5. **Initialize autoresearch.jsonl**: Write a config header line, then record the baseline after the first run.
 6. **Confirm and go**: Confirm setup looks good.
 
 Once you get confirmation, kick off the experimentation.
@@ -68,28 +63,38 @@ grep "^val_bpb:" run.log
 
 ## Logging results
 
-When an experiment is done, log it to `results.tsv` (tab-separated, NOT comma-separated — commas break in descriptions).
+When an experiment is done, log it to `autoresearch.jsonl` (one JSON object per line). Do NOT commit the log file — leave it untracked by git.
 
-The TSV has a header row and 5 columns:
+### Config header (written once at setup)
 
+```json
+{"type":"config","name":"Optimize val_bpb","metricName":"val_bpb","metricUnit":"bpb","bestDirection":"lower"}
 ```
-commit	val_bpb	memory_gb	status	description
+
+### Experiment result (appended after each run)
+
+```json
+{"run":1,"commit":"a1b2c3d","metric":0.9979,"metrics":{"peak_memory_mb":45060,"mfu_percent":39.8},"status":"keep","description":"baseline","timestamp":1700000000,"segment":0,"confidence":null,"asi":{"hypothesis":"establish baseline"}}
 ```
 
-1. git commit hash (short, 7 chars)
-2. val_bpb achieved (e.g. 1.234567) — use 0.000000 for crashes
-3. peak memory in GB, round to .1f (e.g. 12.3 — divide peak_vram_mb by 1024) — use 0.0 for crashes
-4. status: `keep`, `discard`, or `crash`
-5. short text description of what this experiment tried
+Fields:
+- `run` — experiment number (1-indexed, sequential)
+- `commit` — git commit hash (short, 7 chars)
+- `metric` — val_bpb achieved (e.g. 0.997900) — use 0 for crashes
+- `metrics` — secondary metrics dict: `peak_memory_mb`, `mfu_percent`
+- `status` — one of: `keep`, `discard`, `crash`
+- `description` — short text describing what this experiment tried
+- `timestamp` — Unix timestamp (seconds)
+- `segment` — session segment index (0-based)
+- `confidence` — MAD-based confidence score (null if < 3 experiments)
+- `asi` — Actionable Side Information: structured annotations that survive reverts
 
-Example:
+### ASI (Actionable Side Information)
 
-```
-commit	val_bpb	memory_gb	status	description
-a1b2c3d	0.997900	44.0	keep	baseline
-b2c3d4e	0.993200	44.2	keep	increase LR to 0.04
-c3d4e5f	1.005000	44.0	discard	switch to GeLU activation
-d4e5f6g	0.000000	0.0	crash	double model width (OOM)
+Record ASI for every experiment — especially discards and crashes. When code changes are reverted, ASI is the only structured memory of what happened.
+
+```json
+{"hypothesis":"deeper model compresses better","arch_change":"DEPTH 8→12","result":"val_bpb 0.998→0.992 but 2x VRAM","next_action_hint":"try DEPTH=10 for balance"}
 ```
 
 ## The experiment loop
@@ -104,15 +109,15 @@ LOOP FOREVER:
 4. Run the experiment: `uv run train.py > run.log 2>&1` (redirect everything — do NOT use tee or let output flood your context)
 5. Read out the results: `grep "^val_bpb:\|^peak_vram_mb:" run.log`
 6. If the grep output is empty, the run crashed. Run `tail -n 50 run.log` to read the Python stack trace and attempt a fix. If you can't get things to work after more than a few attempts, give up.
-7. Record the results in the tsv (NOTE: do not commit the results.tsv file, leave it untracked by git)
+7. Record the results in `autoresearch.jsonl` with ASI annotations
 8. If val_bpb improved (lower), you "advance" the branch, keeping the git commit
-9. If val_bpb is equal or worse, you git reset back to where you started
+9. If val_bpb is equal or worse, revert: `git revert $(git rev-parse HEAD) --no-edit`
 
-The idea is that you are a completely autonomous researcher trying things out. If they work, keep. If they don't, discard. And you're advancing the branch so that you can iterate. If you feel like you're getting stuck in some way, you can rewind but you should probably do this very very sparingly (if ever).
+The idea is that you are a completely autonomous researcher trying things out. If they work, keep. If they don't, discard. And you're advancing the branch so that you can iterate.
 
 **Timeout**: Each experiment should take ~5 minutes total (+ a few seconds for startup and eval overhead). If a run exceeds 10 minutes, kill it and treat it as a failure (discard and revert).
 
-**Crashes**: If a run crashes (OOM, or a bug, or etc.), use your judgment: If it's something dumb and easy to fix (e.g. a typo, a missing import), fix it and re-run. If the idea itself is fundamentally broken, just skip it, log "crash" as the status in the tsv, and move on.
+**Crashes**: If a run crashes (OOM, or a bug, or etc.), use your judgment: If it's something dumb and easy to fix (e.g. a typo, a missing import), fix it and re-run. If the idea itself is fundamentally broken, just skip it, log "crash" as the status, and move on.
 
 **NEVER STOP**: Once the experiment loop has begun (after the initial setup), do NOT pause to ask the human if you should continue. Do NOT ask "should I keep going?" or "is this a good stopping point?". The human might be asleep, or gone from a computer and expects you to continue working *indefinitely* until you are manually stopped. You are autonomous. If you run out of ideas, think harder — read papers referenced in the code, re-read the in-scope files for new angles, try combining previous near-misses, try more radical architectural changes. The loop runs until the human interrupts you, period.
 
