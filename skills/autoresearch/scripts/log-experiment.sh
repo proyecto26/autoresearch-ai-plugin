@@ -34,6 +34,14 @@
 
 set -euo pipefail
 
+# Escape double-quotes and backslashes for safe JSON embedding
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  printf '%s' "$s"
+}
+
 # Mode flags
 CONFIG_MODE=false
 
@@ -86,13 +94,6 @@ if $CONFIG_MODE; then
     lower|higher) ;;
     *) echo "Error: --direction must be 'lower' or 'higher'" >&2; exit 1 ;;
   esac
-  # Escape string fields for safe JSON
-  json_escape() {
-    local s="$1"
-    s="${s//\\/\\\\}"
-    s="${s//\"/\\\"}"
-    printf '%s' "$s"
-  }
   printf '{"type":"config","name":"%s","metricName":"%s","metricUnit":"%s","bestDirection":"%s"}\n' \
     "$(json_escape "$CFG_NAME")" "$(json_escape "$CFG_METRIC_NAME")" "$(json_escape "$CFG_METRIC_UNIT")" "$CFG_DIRECTION" >> "$FILE"
   echo "Config header written: $CFG_NAME ($CFG_METRIC_NAME, $CFG_DIRECTION)"
@@ -114,14 +115,6 @@ case "$STATUS" in
 esac
 
 TIMESTAMP=$(date +%s)
-
-# Escape double-quotes and backslashes for safe JSON embedding
-json_escape() {
-  local s="$1"
-  s="${s//\\/\\\\}"
-  s="${s//\"/\\\"}"
-  printf '%s' "$s"
-}
 
 # Build JSON line (portable, no jq dependency)
 # Start with required fields

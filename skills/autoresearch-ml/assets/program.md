@@ -1,5 +1,10 @@
 # autoresearch
 
+> **Note:** This file is a standalone reference from the original Karpathy autoresearch project.
+> It uses `results.tsv` and `git reset` conventions. The plugin's SKILL.md is the authoritative
+> source and uses `autoresearch.jsonl` and `git revert` instead. Both approaches work — the
+> SKILL.md format is preferred when using the plugin's utility scripts.
+
 This is an experiment to have the LLM do its own research.
 
 ## Setup
