@@ -1,7 +1,6 @@
 # Autoresearch session files (generated per-project, not part of plugin)
 autoresearch.jsonl
 run.log
-results.tsv
 
 # Python
 __pycache__/
@@ -14,3 +13,6 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local development for now
+docs
