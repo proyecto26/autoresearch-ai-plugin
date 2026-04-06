@@ -219,13 +219,13 @@ Editable: `ASPECT_RATIO`, `DEPTH`, `WINDOW_PATTERN`, `TOTAL_BATCH_SIZE`, learnin
 
 ### Consumer GPU Adaptations
 
-For GPUs with limited VRAM (< 16GB):
+For GPUs with limited VRAM (< 16GB), apply these changes to `train.py` during the first experiment:
 
-1. **Enable gradient checkpointing** — trades ~30% compute for ~50% VRAM savings
-2. **Use built-in attention** — replace Flash Attention 3 with `torch.nn.functional.scaled_dot_product_attention`
-3. **Auto-scale model size** — reduce `DEPTH` and `DEVICE_BATCH_SIZE` to fit VRAM budget
+1. **Remove Flash Attention 3 import and dependency** — the top-level `from kernels import get_kernel` block (lines 20-24) runs unconditionally at startup and will fail on non-Hopper GPUs. Replace the entire block and the `fa3.flash_attn_func()` call in `CausalSelfAttention.forward()` with `torch.nn.functional.scaled_dot_product_attention`. Also remove `kernels` from `pyproject.toml` and run `uv sync` again.
+2. **Enable gradient checkpointing** — use `torch.utils.checkpoint.checkpoint()` with `use_reentrant=False` to trade ~30% compute for ~50% VRAM savings
+3. **Auto-scale model size** — reduce `DEPTH` and `DEVICE_BATCH_SIZE` to fit VRAM budget (see table below)
 4. **Cap evaluation steps** — scale eval batch count by available VRAM (30-100 steps)
-5. **fp32 fallback** — use fp32 instead of bf16 for Pascal GPUs (compute capability < 7.5)
+5. **fp32 fallback** — use fp32 instead of bf16 for Pascal GPUs (compute capability < 7.5). Change the autocast dtype and disable bf16-specific optimizations.
 
 ### VRAM Auto-Scaling Guide
 

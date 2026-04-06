@@ -116,7 +116,7 @@ esac
 
 TIMESTAMP=$(date +%s)
 
-# Build JSON line (portable, no jq dependency)
+# Build JSON line (portable — uses only bash builtins)
 # Start with required fields
 SAFE_DESC=$(json_escape "$DESCRIPTION")
 JSON=$(printf '{"run":%s,"commit":"%s","metric":%s,"status":"%s","description":"%s","timestamp":%s,"segment":%s' \

@@ -19,7 +19,7 @@ set -euo pipefail
 INPUT=$(cat)
 
 # Extract the target file path and working directory from tool input
-# Uses portable sed (no jq or grep -P dependency — works on Git Bash/Windows)
+# Uses portable POSIX sed — works on Linux, macOS, and Git Bash/Windows
 TARGET_FILE=$(echo "$INPUT" | sed -n 's/.*"file_path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' 2>/dev/null || true)
 
 # If no file path found, allow the operation
