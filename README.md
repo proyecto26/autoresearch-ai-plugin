@@ -157,6 +157,26 @@ flowchart TD
 
 ---
 
+## File Protection Hooks
+
+The plugin includes a `PreToolUse` hook that automatically blocks modification of sensitive files during the experiment loop. This prevents accidental changes that would invalidate experiment comparisons.
+
+**Protected files:**
+
+| File | Why it's protected |
+|------|-------------------|
+| `prepare.py` | Fixed evaluation harness, tokenizer, dataloader — modifying it invalidates all comparisons |
+| `autoresearch.sh` | Benchmark script — changing it mid-loop breaks metric comparability |
+| `autoresearch.checks.sh` | Correctness checks — weakening them mid-loop undermines quality guarantees |
+| `parse-metrics.sh` | Plugin utility script |
+| `log-experiment.sh` | Plugin utility script |
+
+**Allowed files:** `train.py` and all other project files remain fully editable.
+
+If Claude attempts to modify a protected file, the hook blocks the operation and returns feedback explaining why, so Claude can adjust its approach.
+
+---
+
 ## Configuration
 
 Create `.claude/autoresearch-ai-plugin.local.md` in your project root for persistent settings:
@@ -243,6 +263,9 @@ autoresearch-ai-plugin/
 ├── .claude-plugin/
 │   ├── plugin.json                    # Plugin manifest
 │   └── marketplace.json               # Marketplace configuration
+├── hooks/
+│   ├── hooks.json                     # Hook configuration (PreToolUse file protection)
+│   └── protect-files.sh               # Blocks modification of sensitive files
 └── skills/
     ├── autoresearch/                   # Generic experiment loop
     │   ├── SKILL.md                   # Core skill — edit/measure/keep/discard cycle
