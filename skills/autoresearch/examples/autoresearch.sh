@@ -42,23 +42,16 @@ else
   peak_mem_mb=0
 fi
 
-# ─── Instrumentation (optional, helps guide next experiment) ──
+# ─── Instrumentation (optional, requires jq for JSON parsing) ─
 # Run once more with JSON reporter for detailed breakdown
 pnpm test --run --reporter=json > /tmp/test-results.json 2>/dev/null || true
-setup_ms=$(python3 -c "
-import json, sys
-try:
-    d = json.load(open('/tmp/test-results.json'))
-    print(int(sum(r.get('perfStats',{}).get('setupTime',0) for r in d.get('testResults',[]))))
-except: print(0)
-" 2>/dev/null || echo "0")
-slow_tests=$(python3 -c "
-import json
-try:
-    d = json.load(open('/tmp/test-results.json'))
-    print(sum(1 for r in d.get('testResults',[]) if r.get('perfStats',{}).get('runtime',0) > 1000))
-except: print(0)
-" 2>/dev/null || echo "0")
+if command -v jq &>/dev/null; then
+  setup_ms=$(jq '.testResults | map(.perfStats.setupTime // 0) | add // 0' /tmp/test-results.json 2>/dev/null || echo "0")
+  slow_tests=$(jq '[.testResults[] | select(.perfStats.runtime > 1000)] | length' /tmp/test-results.json 2>/dev/null || echo "0")
+else
+  setup_ms=0
+  slow_tests=0
+fi
 
 # ─── Output METRIC lines ─────────────────────────────────────
 echo "METRIC total_ms=$median"
