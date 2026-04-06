@@ -173,7 +173,9 @@ The plugin includes a `PreToolUse` hook that automatically blocks modification o
 
 **Allowed files:** `train.py` and all other project files remain fully editable.
 
-If Claude attempts to modify a protected file, the hook blocks the operation and returns feedback explaining why, so Claude can adjust its approach.
+**Setup-phase aware:** Protected files can be *created* during initial setup (file doesn't exist yet) but cannot be *modified* once they exist. This allows the normal setup flow where Claude writes `autoresearch.sh` for the first time.
+
+If Claude attempts to modify an existing protected file, the hook blocks the operation and returns feedback explaining why, so Claude can adjust its approach.
 
 ---
 
@@ -266,6 +268,8 @@ autoresearch-ai-plugin/
 ├── hooks/
 │   ├── hooks.json                     # Hook configuration (PreToolUse file protection)
 │   └── protect-files.sh               # Blocks modification of sensitive files
+├── tests/
+│   └── run-tests.sh                   # E2E test suite (27 tests)
 └── skills/
     ├── autoresearch/                   # Generic experiment loop
     │   ├── SKILL.md                   # Core skill — edit/measure/keep/discard cycle
@@ -289,6 +293,18 @@ autoresearch-ai-plugin/
             ├── program.md             # Agent instructions for ML loop
             └── pyproject.toml         # Python deps (PyTorch + CUDA)
 ```
+
+---
+
+## Testing
+
+Run the E2E test suite to verify all scripts and hooks work correctly:
+
+```bash
+bash tests/run-tests.sh
+```
+
+Covers 27 tests: metric parsing, JSONL logging (including JSON escaping and validation), file protection hooks (blocking, setup allowance, subdirectory bypass), Python asset compilation, and shell syntax checks.
 
 ---
 
