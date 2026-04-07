@@ -14,6 +14,7 @@ description: >-
   "low VRAM training". Always use this skill when the user wants to autonomously
   optimize any ML training metric.
 version: 0.2.0
+argument-hint: "[RUN_TAG] [--depth N] [--batch-size N]"
 ---
 
 # Autoresearch ML: Autonomous LLM Training Optimization
