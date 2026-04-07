@@ -6,7 +6,7 @@ description: >-
   Use this skill when the user asks to "train a model autonomously",
   "optimize LLM training", "run ML experiments", "autoresearch with GPU",
   "optimize val_bpb", "autonomous ML training", "LLM pretraining loop",
-  "setup ML autoresearch", "GPU training experiments", "fine-tune a model",
+  "setup ML autoresearch", "GPU training experiments",
   "pretrain from scratch", "speed up training", "lower my loss",
   "GPU optimization", "CUDA training", or mentions "train.py", "prepare.py",
   "bits per byte", "val_bpb", "NVIDIA GPU training", "RTX training",
@@ -130,7 +130,7 @@ Each experiment appends one JSON line:
 Use the shared logging script:
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/skills/autoresearch/scripts/log-experiment.sh \
+bash ${CLAUDE_SKILL_DIR}/scripts/log-experiment.sh \
   --run 2 \
   --commit "$(git rev-parse --short HEAD)" \
   --metric 0.993 \
@@ -144,7 +144,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/skills/autoresearch/scripts/log-experiment.sh \
 Parse metrics from benchmark output:
 
 ```bash
-bash autoresearch.sh 2>&1 | bash ${CLAUDE_PLUGIN_ROOT}/skills/autoresearch/scripts/parse-metrics.sh
+bash autoresearch.sh 2>&1 | bash ${CLAUDE_SKILL_DIR}/scripts/parse-metrics.sh
 ```
 
 Valid statuses: `keep`, `discard`, `crash`, `checks_failed`
@@ -284,6 +284,8 @@ echo "METRIC mfu_percent=$mfu"
 ## Additional Resources
 
 - **`references/gpu-training-guide.md`** — Detailed GPU setup, CUDA configuration, OOM troubleshooting, BPB formula, and performance tuning
+- **`scripts/parse-metrics.sh`** — Extract METRIC lines from benchmark output
+- **`scripts/log-experiment.sh`** — Append experiment results to autoresearch.jsonl
 - **`assets/prepare.py`** — Data preparation (download, tokenizer, dataloader, evaluation)
 - **`assets/train.py`** — Model architecture and training loop
 - **`assets/program.md`** — Self-contained agent instructions for the ML loop

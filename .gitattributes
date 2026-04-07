@@ -8,6 +8,6 @@
 *.md text eol=lf
 *.json text eol=lf
 
-# Binary files
+# Force LF for Python and config files
 *.py text eol=lf
 *.toml text eol=lf
