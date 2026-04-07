@@ -14,7 +14,7 @@ description: >-
   "low VRAM training". Always use this skill when the user wants to autonomously
   optimize any ML training metric.
 version: 0.2.0
-argument-hint: "[RUN_TAG] [--depth N] [--batch-size N]"
+argument-hint: "[run tag or GPU description]"
 ---
 
 # Autoresearch ML: Autonomous LLM Training Optimization
@@ -52,7 +52,7 @@ python -c "import torch; print(f'CUDA: {torch.cuda.is_available()}, Device: {tor
 
 ### 4. Initialize the Experiment Session
 
-1. Create a branch: `git checkout -b autoresearch/<tag>-<date>`
+1. Create a branch: `git checkout -b autoresearch/<tag>-<date>` — use `$ARGUMENTS` as the run tag if provided, otherwise propose one based on today's date
 2. Ensure session files are gitignored (critical — `git revert` will fail if tracked):
    ```bash
    echo -e "autoresearch.jsonl\nrun.log" >> .gitignore

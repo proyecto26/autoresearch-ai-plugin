@@ -17,7 +17,7 @@ description: >-
   Also use when the user asks about the status of a running autoresearch session
   or wants to cancel/stop one.
 version: 0.2.0
-argument-hint: "[GOAL] [--max-iterations N]"
+argument-hint: "[optimization goal]"
 ---
 
 # Autoresearch: Autonomous Experiment Loop
@@ -35,9 +35,9 @@ The loop is simple: **edit → commit → run → measure → keep or discard �
 
 ## Setup Phase
 
-When the user triggers autoresearch, gather the following (ask if not provided):
+When the user triggers autoresearch, gather the following (ask if not provided). If `$ARGUMENTS` is provided, use it as the optimization goal:
 
-1. **Goal** — what to optimize (e.g., "reduce unit test runtime")
+1. **Goal** — what to optimize (e.g., "reduce unit test runtime") — use `$ARGUMENTS` if provided
 2. **Command** — the benchmark to run (e.g., `pnpm test`, `uv run train.py`)
 3. **Primary metric** — name, unit, and direction (`lower` or `higher` is better)
 4. **Secondary metrics** — optional additional metrics to track for tradeoff monitoring (e.g., memory, compile time)
