@@ -36,6 +36,15 @@ This plugin provides two skills that work together. **Autoresearch** is the core
 - **Fixed Time Budget**: Every experiment runs for exactly 5 minutes — all results are directly comparable.
 - **Bits Per Byte**: Vocab-size-independent metric (`val_bpb`) enables fair comparison across architectures.
 
+### 3. `/run-autoresearch` Command + Orchestrator Agent
+
+*Managed execution — batches, checkpoints, lossless resume.*
+
+- **`/run-autoresearch [goal]`** — one command to run a session end-to-end: it gathers goal/benchmark/metric (asking only for what it can't infer), then dispatches the **Autoresearch Orchestrator** sub-agent, which executes experiments in batches (default 10) following the skill protocol and returns a structured checkpoint after each batch.
+- **`/run-autoresearch status`** / **`/run-autoresearch cancel`** — inspect or wind down the current session directly, without launching the agent.
+- **Checkpoint loop**: `CONTINUE` → the next batch is dispatched automatically; `DONE`/`WALL` → final summary with baseline → best and the top untried ASI hints; `BLOCKED` → the blocker is surfaced. Because state lives in `autoresearch.jsonl` + `autoresearch.md`, every dispatch resumes losslessly — including after context resets or days later.
+- **Requires the plugin install** (Option 1 below). Skills-only installs (`npx skills`, clone-and-copy) get the two skills but not the command/agent.
+
 ---
 
 ## Quick Start
@@ -47,9 +56,21 @@ This plugin provides two skills that work together. **Autoresearch** is the core
 
 ### Installation
 
-#### Option 1: CLI Install (Recommended)
+#### Option 1: Claude Code Plugin (Recommended — full experience)
 
-Use [npx skills](https://github.com/vercel-labs/skills) to install skills directly:
+Install via Claude Code's built-in plugin system. This is the only option that installs **everything**: both skills, the `/run-autoresearch` command, the Autoresearch Orchestrator agent, and the file-protection hooks.
+
+```bash
+# Add the marketplace
+/plugin marketplace add proyecto26/autoresearch-ai-plugin
+
+# Install the plugin
+/plugin install autoresearch-ai-plugin
+```
+
+#### Option 2: CLI Install (skills only)
+
+Use [npx skills](https://github.com/vercel-labs/skills) to install the skills directly:
 
 ```bash
 # Install all skills
@@ -62,21 +83,9 @@ npx skills add proyecto26/autoresearch-ai-plugin --skill autoresearch autoresear
 npx skills add proyecto26/autoresearch-ai-plugin --list
 ```
 
-This automatically installs to your `.claude/skills/` directory.
+This automatically installs to your `.claude/skills/` directory. **Note:** skills-only installs do not include the `/run-autoresearch` command, the orchestrator agent, or the protection hooks — the skills still work fully on their own.
 
-#### Option 2: Claude Code Plugin
-
-Install via Claude Code's built-in plugin system:
-
-```bash
-# Add the marketplace
-/plugin marketplace add proyecto26/autoresearch-ai-plugin
-
-# Install the plugin
-/plugin install autoresearch-ai-plugin
-```
-
-#### Option 3: Clone and Copy
+#### Option 3: Clone and Copy (skills only)
 
 ```bash
 git clone https://github.com/proyecto26/autoresearch-ai-plugin.git
@@ -265,9 +274,20 @@ autoresearch-ai-plugin/
 ├── .claude-plugin/
 │   ├── plugin.json                    # Plugin manifest
 │   └── marketplace.json               # Marketplace configuration
+├── commands/
+│   └── run-autoresearch.md            # /run-autoresearch [goal|status|cancel]
+├── agents/
+│   └── autoresearch-orchestrator.md   # Batched experiment loop with checkpoints
 ├── hooks/
 │   ├── hooks.json                     # Hook configuration (PreToolUse file protection)
 │   └── protect-files.sh               # Blocks modification of sensitive files
+├── scripts/
+│   ├── validate-skills.js             # Tier-1 structural skill validation
+│   └── run-evals.js                   # Tier-2 routing + Tier-3 behavioral evals
+├── evals/
+│   ├── README.md                      # Eval tiers, case format, how to run
+│   ├── cases/                         # Per-skill trigger + behavioral eval cases
+│   └── fixtures/                      # Real workspaces for behavioral evals
 ├── tests/
 │   └── run-tests.sh                   # E2E test suite (27 tests)
 └── skills/
@@ -285,6 +305,9 @@ autoresearch-ai-plugin/
     │       └── autoresearch.md        # Example session document
     └── autoresearch-ml/               # ML/GPU specialization (extends autoresearch)
         ├── SKILL.md                   # ML skill — GPU setup, training workflow
+        ├── scripts/
+        │   ├── parse-metrics.sh       # Shared metric parser (skill-local copy)
+        │   └── log-experiment.sh      # Shared JSONL logger (skill-local copy)
         ├── references/
         │   └── gpu-training-guide.md  # CUDA config, OOM fixes, perf tuning
         └── assets/
@@ -304,13 +327,23 @@ Run the E2E test suite to verify all scripts and hooks work correctly:
 bash tests/run-tests.sh
 ```
 
-Covers 27 tests: metric parsing, JSONL logging (including JSON escaping and validation), file protection hooks (blocking, setup allowance, subdirectory bypass), Python asset compilation, and shell syntax checks.
+Covers 27 tests: metric parsing, JSONL logging (including JSON escaping and validation), file protection hooks (blocking, setup allowance, subdirectory bypass), Python asset compilation, and shell syntax checks. Works on Windows (Git Bash), macOS, and Linux.
+
+### Skill Evals
+
+The plugin ships a three-tier eval framework (see [`evals/README.md`](evals/README.md)) that verifies the skills trigger correctly and actually change agent behavior:
+
+```bash
+node scripts/validate-skills.js                    # Tier 1 — structural (free)
+node scripts/run-evals.js                          # Tier 2 — trigger/routing (free)
+node scripts/run-evals.js --behavioral autoresearch  # Tier 3 — behavioral (spends tokens)
+```
 
 ---
 
 ## 🌟 Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=proyecto26/autoresearch-ai-plugin&type=Date)](https://star-history.com/#proyecto26/autoresearch-ai-plugin-code&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=proyecto26/autoresearch-ai-plugin&type=Date)](https://star-history.com/#proyecto26/autoresearch-ai-plugin&Date)
 
 ## 💜 Sponsors
 

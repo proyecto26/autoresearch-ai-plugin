@@ -16,7 +16,7 @@ description: >-
   improve any measurable metric — even if they don't use the word "autoresearch".
   Also use when the user asks about the status of a running autoresearch session
   or wants to cancel/stop one.
-version: 0.2.0
+version: 0.3.0
 argument-hint: "[optimization goal]"
 ---
 

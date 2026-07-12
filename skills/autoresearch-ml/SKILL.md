@@ -14,7 +14,7 @@ description: >-
   "H100 training", "autonomous model training", "consumer GPU training",
   "low VRAM training". Always use this skill when the user wants to autonomously
   optimize any ML training metric.
-version: 0.2.0
+version: 0.3.0
 argument-hint: "[run tag or GPU description]"
 ---
 

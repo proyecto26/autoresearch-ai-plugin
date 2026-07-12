@@ -10,7 +10,7 @@
     {
       "name": "autoresearch-ai-plugin",
       "description": "Autonomous experiment loop that edits code, runs benchmarks, measures metrics, and keeps improvements or reverts — repeating forever. Works for any optimization target: LLM training loss, test speed, bundle size, build time, Lighthouse scores, and more.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "source": "./",
       "strict": false,
       "skills": ["./skills/autoresearch", "./skills/autoresearch-ml"],
