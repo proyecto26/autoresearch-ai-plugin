@@ -4,13 +4,13 @@ description: >-
   Autonomous experiment loop: edit code, commit, run benchmark, extract metrics,
   keep improvements or revert, repeat forever. Use this skill when the user asks
   to "run autoresearch", "start an experiment loop", "optimize a metric autonomously",
-  "autonomous experiments", "autoresearch setup", "benchmark loop",
+  "autonomous experiments", "benchmark loop",
   "keep/discard experiments", "optimize test speed", "optimize bundle size",
   "optimize build time", "run experiments overnight", "speed up my tests",
-  "make my build faster", "reduce compile time", "optimize this automatically",
+  "make my build faster", "reduce compile time",
   "keep trying until it's faster", "run experiments while I sleep",
-  "overnight optimization", "edit-measure-keep loop", "cancel autoresearch",
-  "stop autoresearch", "autoresearch status", "how many experiments", or mentions
+  "overnight optimization", "edit-measure-keep loop",
+  "autoresearch status", or mentions
   "autoresearch", "experiment loop", "autonomous optimization".
   Always use this skill when the user wants to iteratively and autonomously
   improve any measurable metric — even if they don't use the word "autoresearch".

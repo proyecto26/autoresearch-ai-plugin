@@ -1,0 +1,47 @@
+{
+  "skill_name": "autoresearch-ml",
+  "trigger": {
+    "positive": [
+      {
+        "prompt": "Set up ML autoresearch with my RTX 5090",
+        "top_k": 1
+      },
+      {
+        "prompt": "Pretrain a small LLM from scratch and keep lowering val_bpb overnight",
+        "top_k": 1
+      },
+      {
+        "prompt": "I have an 8GB NVIDIA card — run autonomous training experiments on it",
+        "top_k": 1
+      },
+      {
+        "prompt": "Lower the training loss of my GPT model automatically using the GPU",
+        "top_k": 1
+      }
+    ],
+    "negative": [
+      {
+        "prompt": "Run autoresearch to make my unit tests faster",
+        "owner": "autoresearch"
+      },
+      {
+        "prompt": "Start an experiment loop to reduce the bundle size of my webapp",
+        "owner": "autoresearch"
+      }
+    ]
+  },
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "My ML autoresearch session is in ./ml-session. Give me a status summary, and based on the experiment log tell me what the next 2-3 experiments should try. Do not run any training — there is no GPU on this machine.",
+      "expected_output": "A summary matching the log (5 runs, 3 keeps, baseline val_bpb 1.052, best 1.031) and next-experiment suggestions grounded in the ASI annotations (e.g. LR ~0.04, warmdown schedule stretch, halving DEVICE_BATCH_SIZE when going deeper) — with no training executed.",
+      "files": ["ml-session"],
+      "expectations": [
+        "The agent reads ml-session/autoresearch.jsonl (and/or autoresearch.md) via tool calls before answering",
+        "The reported numbers match the log: 5 runs with 3 keeps, baseline val_bpb 1.052, best val_bpb 1.031",
+        "Suggested next experiments reference the ASI hints recorded in the log (e.g. trying LR around 0.04, stretching the warmdown schedule, or halving DEVICE_BATCH_SIZE when increasing DEPTH)",
+        "No training command is executed (no uv run train.py, no python train.py, no GPU commands)"
+      ]
+    }
+  ]
+}

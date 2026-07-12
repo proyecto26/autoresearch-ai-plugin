@@ -1,0 +1,68 @@
+{
+  "skill_name": "autoresearch",
+  "trigger": {
+    "positive": [
+      {
+        "prompt": "Run autoresearch to optimize my test suite",
+        "top_k": 1
+      },
+      {
+        "prompt": "Start an experiment loop to shrink our bundle size",
+        "top_k": 1
+      },
+      {
+        "prompt": "Keep trying optimizations overnight while I sleep and only keep the ones that make the build faster",
+        "top_k": 1
+      },
+      {
+        "prompt": "What's the autoresearch status, how many experiments so far?",
+        "top_k": 1
+      },
+      {
+        "prompt": "Cancel the autoresearch run and give me a summary",
+        "top_k": 1
+      }
+    ],
+    "negative": [
+      {
+        "prompt": "Set up ML autoresearch on my RTX 5090",
+        "owner": "autoresearch-ml"
+      },
+      {
+        "prompt": "Optimize val_bpb for my GPT pretraining runs autonomously",
+        "owner": "autoresearch-ml"
+      },
+      {
+        "prompt": "Start autonomous LLM training experiments on this GPU overnight",
+        "owner": "autoresearch-ml"
+      }
+    ]
+  },
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "The project lives in ./slow-project — treat it as the project root and initialize a git repository there. Set up autoresearch to reduce the wall-clock runtime of `bash slow.sh` (primary metric: total seconds, lower is better). Run the setup phase through the baseline measurement and record it, then STOP once the baseline is logged — do not continue into the experiment loop; this is a setup verification run.",
+      "expected_output": "Session files created (autoresearch.md, autoresearch.sh), an autoresearch/* git branch, the benchmark actually executed once, and autoresearch.jsonl containing a config header plus a baseline entry with a numeric metric.",
+      "files": ["slow-project"],
+      "expectations": [
+        "A git repository is initialized (or reused) for slow-project and a branch named autoresearch/<something> is created",
+        "autoresearch.md and autoresearch.sh are created, and autoresearch.sh emits METRIC name=value lines including the primary runtime metric",
+        "The benchmark script is actually executed at least once via a Bash tool call to measure the baseline",
+        "autoresearch.jsonl contains a config header line with \"type\":\"config\" and \"bestDirection\":\"lower\", followed by a baseline entry with a numeric metric value",
+        "The agent stops after recording the baseline as instructed, instead of continuing the experiment loop"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "My project is in ./status-session. What's the autoresearch status?",
+      "expected_output": "A status summary computed from autoresearch.jsonl: 5 total runs (3 keep, 1 discard, 1 crash), baseline 5230 ms, best 4230 ms, ~19% improvement — with no files modified.",
+      "files": ["status-session"],
+      "expectations": [
+        "The agent reads status-session/autoresearch.jsonl (and/or autoresearch.md) via tool calls before answering",
+        "The reported totals match the log: 5 runs, 3 kept, 1 discarded, 1 crashed",
+        "The reported baseline (5230 ms) and best (4230 ms) metric values match the log",
+        "No files are modified and no new experiments are started"
+      ]
+    }
+  ]
+}

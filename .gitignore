@@ -1,6 +1,11 @@
 # Autoresearch session files (generated per-project, not part of plugin)
 autoresearch.jsonl
 run.log
+# ...but eval fixtures ship pre-baked session logs on purpose
+!evals/fixtures/**/autoresearch.jsonl
+
+# Skill eval grading output (generated)
+evals/results/
 
 # Python
 __pycache__/

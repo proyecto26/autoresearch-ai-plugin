@@ -6,10 +6,11 @@ description: >-
   Use this skill when the user asks to "train a model autonomously",
   "optimize LLM training", "run ML experiments", "autoresearch with GPU",
   "optimize val_bpb", "autonomous ML training", "LLM pretraining loop",
-  "setup ML autoresearch", "GPU training experiments",
+  "setup ML autoresearch", "set up ML autoresearch on my GPU",
+  "GPU training experiments",
   "pretrain from scratch", "speed up training", "lower my loss",
   "GPU optimization", "CUDA training", or mentions "train.py", "prepare.py",
-  "bits per byte", "val_bpb", "NVIDIA GPU training", "RTX training",
+  "bits per byte", "val_bpb", "NVIDIA GPU training", "RTX 3090/4090/5090 training",
   "H100 training", "autonomous model training", "consumer GPU training",
   "low VRAM training". Always use this skill when the user wants to autonomously
   optimize any ML training metric.

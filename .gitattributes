@@ -7,6 +7,10 @@
 # Force LF for markdown and JSON (consistency)
 *.md text eol=lf
 *.json text eol=lf
+*.jsonl text eol=lf
+
+# Force LF for JavaScript (eval runner scripts run on all OSes)
+*.js text eol=lf
 
 # Force LF for Python and config files
 *.py text eol=lf

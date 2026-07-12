@@ -4,6 +4,18 @@ set -euo pipefail
 PLUGIN_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$PLUGIN_DIR"
 
+# Python resolution: on Windows, "python3" is often the Microsoft Store alias
+# stub (or absent) while "python" is a real CPython. Use the first name that
+# can actually execute code.
+PY=""
+for candidate in python3 python; do
+  if "$candidate" -c "import sys" >/dev/null 2>&1; then PY="$candidate"; break; fi
+done
+if [[ -z "$PY" ]]; then
+  echo "ERROR: no working python3/python found (needed for JSON validation tests)" >&2
+  exit 1
+fi
+
 echo "========================================="
 echo "  E2E TEST SUITE: autoresearch-ai-plugin"
 echo "========================================="
@@ -42,22 +54,22 @@ rm -f "$TESTFILE"
 echo -n "T5 config header: "
 bash skills/autoresearch/scripts/log-experiment.sh --config --name "Test" --metric-name "ms" --metric-unit "ms" --direction lower --file "$TESTFILE" >/dev/null
 LINE=$(head -1 "$TESTFILE")
-echo "$LINE" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['type']=='config' and d['metricName']=='ms'" 2>/dev/null && pass || fail "$LINE"
+echo "$LINE" | "$PY" -c "import json,sys; d=json.load(sys.stdin); assert d['type']=='config' and d['metricName']=='ms'" 2>/dev/null && pass || fail "$LINE"
 
 echo -n "T6 basic experiment: "
 bash skills/autoresearch/scripts/log-experiment.sh --run 1 --commit abc1234 --metric 4.23 --status keep --description "baseline" --file "$TESTFILE" >/dev/null
 LINE=$(tail -1 "$TESTFILE")
-echo "$LINE" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['run']==1 and d['status']=='keep' and d['metric']==4.23" 2>/dev/null && pass || fail "$LINE"
+echo "$LINE" | "$PY" -c "import json,sys; d=json.load(sys.stdin); assert d['run']==1 and d['status']=='keep' and d['metric']==4.23" 2>/dev/null && pass || fail "$LINE"
 
 echo -n "T7 full fields (metrics, ASI, confidence): "
 bash skills/autoresearch/scripts/log-experiment.sh --run 2 --commit def5678 --metric 3.8 --status discard --description "tried something" --metrics '{"mem":512}' --segment 0 --confidence 2.1 --asi '{"hypothesis":"test"}' --file "$TESTFILE" >/dev/null
 LINE=$(tail -1 "$TESTFILE")
-echo "$LINE" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['confidence']==2.1 and d['asi']['hypothesis']=='test' and d['metrics']['mem']==512" 2>/dev/null && pass || fail "$LINE"
+echo "$LINE" | "$PY" -c "import json,sys; d=json.load(sys.stdin); assert d['confidence']==2.1 and d['asi']['hypothesis']=='test' and d['metrics']['mem']==512" 2>/dev/null && pass || fail "$LINE"
 
 echo -n "T8 JSON escaping (quotes in description): "
 bash skills/autoresearch/scripts/log-experiment.sh --run 3 --commit ghi9012 --metric 5.0 --status crash --description "tried \"lazy eval\"" --file "$TESTFILE" >/dev/null
 LINE=$(tail -1 "$TESTFILE")
-echo "$LINE" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert "lazy eval" in d["description"]' 2>/dev/null && pass || fail "$LINE"
+echo "$LINE" | "$PY" -c 'import json,sys; d=json.load(sys.stdin); assert "lazy eval" in d["description"]' 2>/dev/null && pass || fail "$LINE"
 
 echo -n "T9 invalid status rejected: "
 if bash skills/autoresearch/scripts/log-experiment.sh --run 4 --commit xxx --metric 1 --status invalid --description "test" --file /dev/null 2>/dev/null; then
@@ -76,7 +88,7 @@ fi
 echo -n "T11 all JSONL lines valid JSON: "
 ALL_VALID=true
 while IFS= read -r line; do
-  echo "$line" | python3 -c "import json,sys; json.load(sys.stdin)" 2>/dev/null || { ALL_VALID=false; break; }
+  echo "$line" | "$PY" -c "import json,sys; json.load(sys.stdin)" 2>/dev/null || { ALL_VALID=false; break; }
 done < "$TESTFILE"
 $ALL_VALID && pass || fail "invalid JSON line"
 rm -f "$TESTFILE"
@@ -140,10 +152,10 @@ echo ""
 echo "--- Python assets ---"
 
 echo -n "T21 prepare.py compiles: "
-python3 -m py_compile skills/autoresearch-ml/assets/prepare.py 2>/dev/null && pass || fail "compile error"
+"$PY" -m py_compile skills/autoresearch-ml/assets/prepare.py 2>/dev/null && pass || fail "compile error"
 
 echo -n "T22 train.py compiles: "
-python3 -m py_compile skills/autoresearch-ml/assets/train.py 2>/dev/null && pass || fail "compile error"
+"$PY" -m py_compile skills/autoresearch-ml/assets/train.py 2>/dev/null && pass || fail "compile error"
 
 # --- Shell syntax ---
 echo ""
