@@ -14,7 +14,7 @@ description: >-
   "H100 training", "autonomous model training", "consumer GPU training",
   "low VRAM training". Always use this skill when the user wants to autonomously
   optimize any ML training metric.
-version: 0.3.0
+version: 0.3.1
 argument-hint: "[run tag or GPU description]"
 ---
 
@@ -54,19 +54,20 @@ python -c "import torch; print(f'CUDA: {torch.cuda.is_available()}, Device: {tor
 ### 4. Initialize the Experiment Session
 
 1. Create a branch: `git checkout -b autoresearch/<tag>-<date>` — use `$ARGUMENTS` as the run tag if provided, otherwise propose one based on today's date
-2. Ensure session files are gitignored (critical — `git revert` will fail if tracked):
+2. Gitignore the **living session files** — critical: `git revert` fails if `autoresearch.jsonl` is tracked, and if `autoresearch.md` (which you update mid-loop) is tracked, a revert can erase your learnings:
    ```bash
-   echo -e "autoresearch.jsonl\nrun.log" >> .gitignore
+   printf '%s\n' autoresearch.jsonl autoresearch.md autoresearch.ideas.md run.log >> .gitignore
    git add .gitignore && git commit -m "autoresearch: add session files to gitignore"
    ```
 3. Read `prepare.py` and `train.py` thoroughly to understand the codebase
-4. Write `autoresearch.md` — a living session document recording goal, metrics, files in scope, constraints, and learnings
+4. Write `autoresearch.md` — a living session document recording goal, metrics, files in scope, constraints, and learnings. It is gitignored (living state), never committed or reverted.
 5. Write `autoresearch.sh` — the benchmark script (see Benchmark Script section below)
-6. Commit session files
+6. Commit **only** `autoresearch.sh` (the immutable benchmark harness) — not `autoresearch.md`/`.jsonl` (gitignored above). `train.py` stays in history as normal.
 7. Run baseline: `bash autoresearch.sh`
 8. Parse metrics from output (lines matching `METRIC name=value`)
 9. Record baseline in `autoresearch.jsonl`:
    - First write a config header: `{"type":"config","name":"Optimize val_bpb","metricName":"val_bpb","metricUnit":"bpb","bestDirection":"lower"}`
+   - Then a status marker: `{"type":"status","state":"running","timestamp":...}`
    - Then record the baseline result
 10. Begin the experiment loop
 
@@ -79,10 +80,12 @@ The user might be asleep, away from the computer, or expects you to work indefin
 Each iteration:
 
 ```
+0. Check stopping conditions (see "Stopping Conditions" below). If any is met, stop and report — do not start another experiment.
 1. Read current git state and autoresearch.md
 2. Choose an experimental change to train.py (informed by past results and ASI notes)
 3. Edit train.py (the ONLY editable file)
 4. git add train.py && git commit -m "experiment: <description>"
+   (Commit ONLY train.py — never autoresearch.md/.jsonl/.ideas.md; they are gitignored so a revert can't erase them.)
 5. Run: bash autoresearch.sh > run.log 2>&1
 6. Parse METRIC lines from output
 7. If output is empty (crash): tail -n 50 run.log to read the stack trace
@@ -92,6 +95,16 @@ Each iteration:
 11. Update autoresearch.md with learnings (every few experiments)
 12. Repeat
 ```
+
+### Stopping Conditions
+
+Check these at the top of every iteration (loop step 0). All counts are **recomputed from `autoresearch.jsonl`** each time, scoped to the **current segment** (see Segments below), so they survive context resets:
+
+- **Current-segment run count** = number of run entries (`status` in `keep|discard|crash|checks_failed`) whose `segment` equals the current segment. Count the matching entries directly — do **not** use the `run` number, which is a session-wide sequential counter that keeps climbing across segments and would over-count a fresh segment.
+- **`max_iterations` reached** — if `max_iterations` > 0 (from `.claude/autoresearch-ai-plugin.local.md`, see the generic `autoresearch` skill's config section) and the current-segment run count ≥ it → stop (`Status: DONE (max_iterations)`). `0` or absent = unlimited.
+- **Unbounded-loop backstop (check-in, not a stop)** — when `max_iterations` is 0/unlimited, pause for a human check-in **every 200 current-segment runs** (at 200, 400, 600, …). On reaching a boundary `B` (a multiple of 200) with no acknowledgement in the log, append a non-terminal marker `{"type":"status","state":"running","backstop_ack":B,...}` and stop this dispatch to ask the user. The status stays `running` (a confirmed relaunch isn't blocked) and the `backstop_ack:B` record is durable, so the next dispatch does not re-pause at `B`. Pause rule: *pause at boundary `B` only if no status record already carries `backstop_ack` ≥ `B`.* An explicit `max_iterations` replaces this with a hard stop.
+- **Consecutive-failure wall** — streak > 8 (see Don't Thrash) → stop (`Status: WALL`).
+- **Session already concluded** — if the last `{"type":"status",...}` record is not `running`, do not silently resume.
 
 ### Decision Rules
 
@@ -115,7 +128,12 @@ All else being equal, simpler is better. A 0.001 val_bpb improvement that adds 2
 
 ### Don't Thrash
 
-If 3 consecutive experiments fail or get discarded, stop and think about why. Re-read `train.py` for new angles. Try a fundamentally different approach.
+The **consecutive-failure streak** is recomputed from `autoresearch.jsonl` (never from memory): starting from the last line, count backward the runs whose `status` is `discard` or `crash`; stop (reset to 0) at the first `keep`, the first `checks_failed`, or the first run in an **earlier `segment`**.
+
+- **Streak ≥ 3 → rethink (soft):** stop, think about *why* the last few failed, re-read `train.py` for new angles, try a fundamentally different approach.
+- **Streak > 8 → wall (terminal):** the segment is stuck; stop and report (`Status: WALL`). A genuinely different direction usually means a new segment, which resets the streak.
+
+The `> 8` boundary is deliberately high so a fruitful overnight run with the occasional crash isn't aborted — only a truly stuck segment trips it.
 
 ### Handling User Messages
 
@@ -151,6 +169,28 @@ bash autoresearch.sh 2>&1 | bash ${CLAUDE_SKILL_DIR}/scripts/parse-metrics.sh
 
 Valid statuses: `keep`, `discard`, `crash`, `checks_failed`
 
+### Status Marker & Logging Invariants
+
+Alongside run entries, the log carries a session-lifecycle marker (identical semantics to the generic `autoresearch` skill):
+
+```json
+{"type":"status","state":"running","timestamp":1700000000}
+```
+
+Write `running` at setup, `done`/`wall`/`blocked` when the loop stops, `cancelled` on user cancel. A session resumes only if the **last** `status` record is `running` (or there is none — legacy log). The marker has no `run` number and is skipped by run-counting.
+
+Invariants: never log `keep` when correctness checks failed (it is `checks_failed`); the log is append-only (the status marker is the one intentional non-run append); once a secondary metric appears, include it every run.
+
+## Segments (Multi-Phase Sessions)
+
+A **segment** groups runs under one optimization target. When the target changes materially — a different architecture family, a different eval, or a changed time budget — start a new segment so old runs are filtered as a previous phase without being lost:
+
+1. Write a new config header to `autoresearch.jsonl` with the updated target.
+2. Increment `segment` on all subsequent runs.
+3. Establish a fresh baseline for the new segment.
+
+Everything scoped "to the current segment" resets at a segment boundary: the baseline, the confidence (MAD) noise floor, the consecutive-failure streak, and the `max_iterations`/backstop run count. This is why the Stopping Conditions and Don't Thrash rules all say "current segment" — a new research direction gets a clean slate rather than inheriting the previous phase's failures or run budget.
+
 ## ASI (Actionable Side Information)
 
 ASI is structured annotation per experiment that **survives reverts**. When code changes are discarded, only the description and ASI remain — the only structured memory of what happened.
@@ -168,14 +208,15 @@ Record ASI for every experiment:
 
 ## Resuming After Context Reset
 
-If `autoresearch.jsonl` and `autoresearch.md` exist in the working directory:
+If `autoresearch.jsonl` exists in the working directory (the authoritative session state):
 
-1. Read `autoresearch.md` for full context (goal, metrics, files, constraints, learnings)
-2. Read `autoresearch.jsonl` to see all past experiments, current best, and ASI annotations
-3. Check git log to verify current branch state matches expected state
-4. If git state is dirty (unclean shutdown), revert uncommitted changes
-5. Resume the loop from where it left off — no re-setup needed
-6. **Resume immediately** — do not ask "should I continue?"
+1. Read `autoresearch.jsonl` for all past experiments, current best, ASI, and the **last `{"type":"status",...}` record**. Resume only if that last status is `running` (or none — legacy log); if it is `cancelled`/`done`/`wall`, confirm with the user before restarting.
+2. Read `autoresearch.md` for full context; if missing (it is gitignored), reconstruct it from the JSONL config header and git log.
+3. Check git log to verify current branch state matches expected state.
+4. If git state is dirty (unclean shutdown), revert **only known experiment leftovers** — an uncommitted `train.py` edit from an interrupted experiment. Do not blindly discard changes you cannot attribute to the loop; if unsure what a dirty change is, stop and ask.
+5. Re-check the Stopping Conditions from the log before continuing.
+6. Resume the loop from where it left off — no re-setup needed.
+7. **Resume immediately** if the session is active — do not ask "should I continue?"
 
 ## Confidence Scoring
 

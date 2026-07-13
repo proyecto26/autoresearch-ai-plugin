@@ -424,14 +424,33 @@ function runBehavioral(skillName, dryRun) {
     console.log(`eval ${ev.id}: executing in ${workspace} ...`);
     // stream-json + verbose captures the full execution trace, tool calls
     // included, so grading judges observed behavior, not self-reporting.
-    const trace = execFileSync(
-      'claude',
-      ['-p', '--verbose', '--output-format', 'stream-json',
-        '--permission-mode', 'acceptEdits',
-        '--allowedTools', EXECUTOR_TOOLS,
-        '--append-system-prompt', `Follow this skill exactly:\n\n${fs.readFileSync(skillFile, 'utf8')}`],
-      { input: ev.prompt, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, cwd: workspace, timeout: EXECUTOR_TIMEOUT_MS },
-    );
+    // The executor process can exit non-zero for reasons unrelated to the
+    // agent's work — most commonly a failing SessionEnd hook from the host's
+    // global config (e.g. a python3-not-found analytics hook on Windows).
+    // The execution trace is still fully present on stdout in that case, so
+    // capture it and grade it rather than aborting the whole batch.
+    let trace;
+    try {
+      trace = execFileSync(
+        'claude',
+        ['-p', '--verbose', '--output-format', 'stream-json',
+          '--permission-mode', 'acceptEdits',
+          '--allowedTools', EXECUTOR_TOOLS,
+          '--append-system-prompt', `Follow this skill exactly:\n\n${fs.readFileSync(skillFile, 'utf8')}`],
+        { input: ev.prompt, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, cwd: workspace, timeout: EXECUTOR_TIMEOUT_MS },
+      );
+    } catch (err) {
+      trace = err.stdout || '';
+      if (err.signal === 'SIGTERM' || /ETIMEDOUT/.test(String(err.code))) {
+        console.log(`  ⚠  eval ${ev.id}: executor timed out — grading the partial trace`);
+      } else if (!trace) {
+        console.log(`  ✗  eval ${ev.id}: executor produced no trace (${err.message.split('\n')[0]}) — skipping`);
+        failures++;
+        continue;
+      } else {
+        console.log(`  ⚠  eval ${ev.id}: executor exited non-zero (likely an unrelated host hook) — grading the captured trace`);
+      }
+    }
     const graderPrompt = [
       'You are grading an agent execution trace against explicit expectations.',
       'The trace is stream-json: it includes tool calls and results. Judge what the agent actually did (tool calls, file edits, command runs), not what it merely claims in prose.',
@@ -441,8 +460,15 @@ function runBehavioral(skillName, dryRun) {
       'Return ONLY JSON: {"expectations":[{"text":string,"passed":boolean,"evidence":string}],"summary":{"passed":number,"failed":number,"total":number,"pass_rate":number}}',
     ].join('\n\n');
     // The trace can be megabytes; pass the grader prompt via stdin, never
-    // argv, or it would blow past the OS argument-size limit.
-    const raw = execFileSync('claude', ['-p'], { input: graderPrompt, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, timeout: GRADER_TIMEOUT_MS });
+    // argv, or it would blow past the OS argument-size limit. As with the
+    // executor, a non-zero exit (e.g. host SessionEnd hook) still leaves the
+    // grader's JSON on stdout, so capture and parse it either way.
+    let raw;
+    try {
+      raw = execFileSync('claude', ['-p'], { input: graderPrompt, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, timeout: GRADER_TIMEOUT_MS });
+    } catch (err) {
+      raw = err.stdout || '';
+    }
     const grading = parseGrading(raw);
     const base = path.join(RESULTS_DIR, `${skillName}.eval-${ev.id}`);
     if (!grading) {

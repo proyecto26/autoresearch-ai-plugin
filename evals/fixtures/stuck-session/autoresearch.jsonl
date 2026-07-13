@@ -1,0 +1,12 @@
+{"type":"config","name":"Optimize bundle size","metricName":"bytes","metricUnit":"B","bestDirection":"lower"}
+{"type":"status","state":"running","timestamp":1751700000}
+{"run":1,"commit":"aa11bb2","metric":540000,"status":"keep","description":"baseline","timestamp":1751700000,"segment":0,"confidence":null}
+{"run":2,"commit":"bb22cc3","metric":548000,"status":"discard","description":"tree-shake lodash","timestamp":1751700300,"segment":0,"asi":{"result":"bigger, not smaller"}}
+{"run":3,"commit":"cc33dd4","metric":551000,"status":"discard","description":"dynamic import charts","timestamp":1751700600,"segment":0,"asi":{"result":"regressed"}}
+{"run":4,"commit":"dd44ee5","metric":0,"status":"crash","description":"swap to preact","timestamp":1751700900,"segment":0,"asi":{"error_details":"build failed: type errors"}}
+{"run":5,"commit":"ee55ff6","metric":549000,"status":"discard","description":"minify config tweak","timestamp":1751701200,"segment":0,"asi":{"result":"no change"}}
+{"run":6,"commit":"ff66aa7","metric":0,"status":"crash","description":"esbuild target es2015","timestamp":1751701500,"segment":0,"asi":{"error_details":"plugin incompatibility"}}
+{"run":7,"commit":"aa77bb8","metric":550000,"status":"discard","description":"remove moment.js","timestamp":1751701800,"segment":0,"asi":{"result":"other dep pulled it back in"}}
+{"run":8,"commit":"bb88cc9","metric":552000,"status":"discard","description":"split vendor chunk","timestamp":1751702100,"segment":0,"asi":{"result":"worse"}}
+{"run":9,"commit":"cc99dda","metric":0,"status":"crash","description":"rollup migration","timestamp":1751702400,"segment":0,"asi":{"error_details":"config error"}}
+{"run":10,"commit":"dd00eeb","metric":549500,"status":"discard","description":"gzip level bump","timestamp":1751702700,"segment":0,"asi":{"result":"negligible"}}

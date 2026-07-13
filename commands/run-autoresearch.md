@@ -17,7 +17,7 @@ Manage an autoresearch session for this project. Arguments: "$ARGUMENTS"
 **Otherwise, run a session:**
 
 1. **Detect session type.**
-   - Existing session: `autoresearch.jsonl` present (the authoritative state file) → resume; no questions needed. If only `autoresearch.md` exists (interrupted setup), treat it as a new session — setup reuses the doc's parameters.
+   - Existing session: `autoresearch.jsonl` present (the authoritative state file). Check the **last `{"type":"status",...}` record**: if its `state` is `running` (or there is no status record — legacy log) → resume, no questions needed. If it is `cancelled`/`done`/`wall` → the session is concluded; do **not** silently resume — tell the user its final state and ask whether to restart (a new segment) or leave it. Also resume-guard on goal: if the requested goal clearly differs from the log's config-header goal, ask rather than resume. If only `autoresearch.md` exists (interrupted setup), treat it as a new session — setup reuses the doc's parameters.
    - ML training session: the goal mentions LLM/GPU training, `val_bpb`, pretraining — or the project contains the `train.py`/`prepare.py` template → use the `autoresearch-ml` skill protocol.
    - Anything else → the generic `autoresearch` skill protocol.
 
@@ -32,11 +32,12 @@ Manage an autoresearch session for this project. Arguments: "$ARGUMENTS"
 4. **Handle the checkpoint** the agent returns:
    - Relay the checkpoint report to the user verbatim.
    - `CONTINUE` → relaunch the orchestrator immediately for the next batch (do not ask permission; the user started an autonomous loop and can interrupt anytime).
-   - `DONE` / `WALL` → report final summary: total runs, kept improvements, baseline → best with percentage, and the top untried ASI hints.
+   - `DONE (max_iterations)` / `WALL` → report the final summary (total runs, kept improvements, baseline → best %, top untried ASI hints) and stop — the agent has written the matching status marker, so do not relaunch.
+   - `PAUSED (backstop: N runs)` → the unbounded loop hit a 200-run check-in (the session is still `running`, not concluded; the agent recorded a `backstop_ack` for this boundary in the log). Report progress and **ask the user** whether to continue or stop — do not auto-relaunch. If they continue, dispatch again (the ack means it won't re-pause at this boundary — the next check-in is the following one). If they stop, have the agent write a `done` marker to conclude.
    - `BLOCKED` → surface the blocker and ask the user how to proceed.
 
 ## Guardrails
 
-- State persists in `autoresearch.jsonl` + `autoresearch.md`; the loop survives context resets and can be resumed later with `/run-autoresearch` alone.
+- State persists in `autoresearch.jsonl` (authoritative) + `autoresearch.md`; the loop survives context resets and can be resumed later with `/run-autoresearch` alone. A session is resumable only while its last `{"type":"status",...}` marker is `running`.
 - Never let the orchestrator (or yourself) modify `autoresearch.sh`, `autoresearch.checks.sh`, or `prepare.py` after creation. The plugin's file-protection hook blocks Write/Edit changes; shell writes are not intercepted, so the prohibition applies to Bash commands as well.
-- Respect `max_iterations` from `.claude/autoresearch-ai-plugin.local.md`; stop relaunching once reached. `max_iterations: 0` or absent means unlimited.
+- Respect `max_iterations` from `.claude/autoresearch-ai-plugin.local.md`; stop relaunching once the current-segment run count reaches it. `max_iterations: 0` or absent means unlimited, in which case the 200-run backstop applies (confirm-to-continue, not a hard stop).

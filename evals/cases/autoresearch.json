@@ -63,6 +63,42 @@
         "The reported baseline (5230 ms) and best (4230 ms) metric values match the log",
         "No files are modified and no new experiments are started"
       ]
+    },
+    {
+      "id": 3,
+      "prompt": "Resume autoresearch in ./maxed-session and keep optimizing the test runtime.",
+      "expected_output": "The agent recomputes the current-segment run count (3) from autoresearch.jsonl, sees it has reached max_iterations (3) from .claude/autoresearch-ai-plugin.local.md, and stops with a DONE (max_iterations) conclusion WITHOUT running another experiment.",
+      "files": ["maxed-session"],
+      "expectations": [
+        "The agent reads maxed-session/autoresearch.jsonl and the .claude/autoresearch-ai-plugin.local.md config before acting",
+        "The agent determines the current-segment run count is 3 and that max_iterations is 3",
+        "The agent concludes the session is at its max_iterations limit and stops (a DONE/max_iterations conclusion)",
+        "No new experiment is run: no new commit, no benchmark execution, no new run entry appended to autoresearch.jsonl"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Resume autoresearch in ./stuck-session and keep trying to shrink the bundle.",
+      "expected_output": "The agent recomputes the consecutive discard/crash streak from autoresearch.jsonl (9 trailing failures in the current segment, > 8), recognizes the segment is stuck, and stops with a WALL conclusion instead of grinding out another doomed experiment.",
+      "files": ["stuck-session"],
+      "expectations": [
+        "The agent reads stuck-session/autoresearch.jsonl before acting",
+        "The agent identifies that the recent runs are a long run of consecutive discards/crashes (a streak greater than 8) in the current segment",
+        "The agent stops with a WALL / stuck-segment conclusion rather than immediately launching another experiment on the same failing approach",
+        "If it does anything further, it proposes a fundamentally different direction or a new segment rather than a minor variation of the failing attempts"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Resume the autoresearch session in ./cancelled-session.",
+      "expected_output": "The agent reads autoresearch.jsonl, sees the last {\"type\":\"status\"} record is 'cancelled', and does NOT silently resume — it reports the session was cancelled and asks the user whether to restart, rather than launching an experiment.",
+      "files": ["cancelled-session"],
+      "expectations": [
+        "The agent reads cancelled-session/autoresearch.jsonl before acting",
+        "The agent recognizes the last status marker is 'cancelled' and that the session is concluded",
+        "The agent does NOT silently resume: no new experiment is run and no new run entry is appended",
+        "The agent surfaces the cancelled state and asks the user whether to restart rather than proceeding on its own"
+      ]
     }
   ]
 }

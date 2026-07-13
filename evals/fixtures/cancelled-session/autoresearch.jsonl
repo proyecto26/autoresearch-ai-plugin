@@ -1,0 +1,5 @@
+{"type":"config","name":"Optimize build time","metricName":"build_ms","metricUnit":"ms","bestDirection":"lower"}
+{"type":"status","state":"running","timestamp":1751600000}
+{"run":1,"commit":"1a2b3c4","metric":82000,"status":"keep","description":"baseline","timestamp":1751600000,"segment":0,"confidence":null}
+{"run":2,"commit":"2b3c4d5","metric":78000,"status":"keep","description":"enable incremental compilation","timestamp":1751600600,"segment":0,"confidence":null,"asi":{"next_action_hint":"try build cache"}}
+{"type":"status","state":"cancelled","reason":"user stopped the session","timestamp":1751601000}

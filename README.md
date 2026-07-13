@@ -25,6 +25,7 @@ This plugin provides two skills that work together. **Autoresearch** is the core
 - **Secondary Metrics**: Track tradeoff metrics (memory, compile time) alongside the primary optimization target.
 - **Segments**: Multi-phase sessions — switch optimization targets mid-session without losing history.
 - **Cancel & Status**: Check progress or stop the loop at any time while preserving experiment history.
+- **Deterministic stopping rules** (v0.3.1): every loop-termination condition is recomputed from `autoresearch.jsonl` (current segment) so it survives context resets — a segment-scoped consecutive-failure wall (`>8`), honored `max_iterations`, a 200-run backstop for unbounded runs, and a session-lifecycle `status` marker so a cancelled/finished session is never silently resumed.
 - **Any Metric**: Test speed, bundle size, build time, Lighthouse scores, memory usage — if you can measure it, you can optimize it.
 
 ### 2. Autoresearch ML (The Researcher)

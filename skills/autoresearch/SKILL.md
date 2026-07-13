@@ -16,7 +16,7 @@ description: >-
   improve any measurable metric — even if they don't use the word "autoresearch".
   Also use when the user asks about the status of a running autoresearch session
   or wants to cancel/stop one.
-version: 0.3.0
+version: 0.3.1
 argument-hint: "[optimization goal]"
 ---
 
@@ -71,19 +71,19 @@ If the file doesn't exist, use defaults. The file should be added to `.gitignore
 Then execute these setup steps:
 
 1. Create a branch: `git checkout -b autoresearch/<goal>-<date>`
-2. Ensure session files are gitignored (critical — `git revert` will fail if `autoresearch.jsonl` is tracked):
+2. Gitignore the **living session files** — the ones that change every run. This is critical for two reasons: `git revert` will fail if `autoresearch.jsonl` is tracked, and if `autoresearch.md` (which you update mid-loop) is tracked, a broad experiment commit could sweep it in and a later revert would erase your learnings:
    ```bash
-   echo -e "autoresearch.jsonl\nrun.log" >> .gitignore
+   printf '%s\n' autoresearch.jsonl autoresearch.md autoresearch.ideas.md run.log >> .gitignore
    git add .gitignore && git commit -m "autoresearch: add session files to gitignore"
    ```
 3. Read all files in scope thoroughly to understand the codebase
-4. Write `autoresearch.md` — the session document (see `examples/autoresearch.md`)
+4. Write `autoresearch.md` — the session document (see `examples/autoresearch.md`). It is gitignored (living state), so it is never committed or reverted.
 5. Write `autoresearch.sh` — the benchmark script (see `examples/autoresearch.sh`)
 6. Optionally write `autoresearch.checks.sh` — correctness checks (tests, lint, types)
-7. Commit session files
+7. Commit **only** the immutable harness — `autoresearch.sh` and (if present) `autoresearch.checks.sh`. These never change after setup (the file-protection hook enforces it), so keeping them in history is safe and aids reproducibility. Do **not** commit `autoresearch.md`/`.jsonl`/`.ideas.md` (gitignored above).
 8. Run baseline: `bash autoresearch.sh`
 9. Parse metrics from output (lines matching `METRIC name=value`)
-10. Record baseline in `autoresearch.jsonl` (with `"type":"config"` header first, then baseline result)
+10. Record baseline in `autoresearch.jsonl`: write the `"type":"config"` header, then a `{"type":"status","state":"running",...}` marker, then the baseline result
 11. Begin the experiment loop
 
 ## The Experiment Loop
@@ -95,10 +95,12 @@ The user might be asleep, away from the computer, or expects you to work indefin
 Each iteration:
 
 ```
+0. Check stopping conditions (see "Stopping Conditions" below). If any is met, stop and report — do not start another experiment.
 1. Read current git state and autoresearch.md
 2. Choose an experimental change (informed by past results and ASI notes)
 3. Edit files in scope
-4. git add <files> && git commit -m "experiment: <description>"
+4. git add <files-in-scope only> && git commit -m "experiment: <description>"
+   (Commit ONLY the files in scope — never autoresearch.md/.jsonl/.ideas.md; they are gitignored so a revert can't erase them.)
 5. Run: bash autoresearch.sh > run.log 2>&1
 6. Parse METRIC lines from output
 7. If autoresearch.checks.sh exists, run it (separate timeout, default 300s)
@@ -141,11 +143,28 @@ If the user sends a message while the loop is running:
 
 ### Don't Thrash
 
-If 3 consecutive experiments fail or get discarded:
-1. Stop and think about why
-2. Re-read the source files for new angles
-3. Try a fundamentally different approach
-4. Consult `autoresearch.ideas.md` for untried ideas
+The **consecutive-failure streak** is the key signal, and it is defined so it can be recomputed from `autoresearch.jsonl` alone (never from memory — you may have been context-reset):
+
+> Starting from the **last line** of `autoresearch.jsonl`, count backward the run entries whose `status` is `discard` or `crash`. Stop counting (streak resets to 0) at the first `keep`, the first `checks_failed`, or the first run belonging to an **earlier `segment`**.
+
+- **Streak ≥ 3 → rethink (soft).** Stop grinding on the current angle:
+  1. Think about *why* the last few failed.
+  2. Re-read the source files for new angles.
+  3. Try a fundamentally different approach.
+  4. Consult `autoresearch.ideas.md` for untried ideas.
+- **Streak > 8 → wall (terminal).** The current segment is stuck. Stop the session and report it (an orchestrated run returns `Status: WALL`). Starting a genuinely different direction usually means a new segment, which resets the streak.
+
+The `> 8` boundary is deliberately high so a fruitful overnight loop with the occasional rough patch is never aborted — only a truly stuck segment trips it.
+
+## Stopping Conditions
+
+Check these at the top of every iteration (loop step 0). All counts are **recomputed from `autoresearch.jsonl`** each time, scoped to the **current segment**, so they survive context resets:
+
+- **Current-segment run count** = the number of run entries (`status` in `keep|discard|crash|checks_failed`) whose `segment` equals the current segment. Count the matching entries directly — do **not** use the `run` number for this, since `run` is a session-wide sequential counter that keeps climbing across segments (segment 1 might start at `run` 51), so it would over-count a fresh segment.
+- **`max_iterations` reached** — if `max_iterations` > 0 (from `.claude/autoresearch-ai-plugin.local.md`) and the current-segment run count ≥ it → stop (`Status: DONE (max_iterations)`). `0` or absent = unlimited.
+- **Unbounded-loop backstop (check-in, not a stop)** — when `max_iterations` is 0/unlimited, pause for a human check-in **every 200 current-segment runs** (at counts 200, 400, 600, …). On reaching a boundary `B` (a multiple of 200) for which the log holds no acknowledgement, append a **non-terminal** marker recording it — `{"type":"status","state":"running","backstop_ack":B,...}` — and stop *this dispatch* to ask the user before continuing. Two properties make the continuation coherent: the status stays `running` (so a confirmed relaunch is not blocked by the resume guard), and the `backstop_ack:B` record is durable in the log — so the next dispatch sees `B` is already acknowledged, does **not** re-pause at it, and runs on to the next un-acknowledged boundary. The pause rule is precisely: *pause at boundary `B` only if no status record already carries `backstop_ack` ≥ `B`.* An explicit `max_iterations` replaces this backstop with a hard stop.
+- **Consecutive-failure wall** — streak > 8 (see Don't Thrash) → stop (`Status: WALL`).
+- **Session already concluded** — if the last `{"type":"status",...}` record in the log is not `running` (e.g. `cancelled`/`done`), the session is over; do not silently resume it.
 
 ## Metric Output Format
 
@@ -209,6 +228,20 @@ ASI fields are free-form — use whatever keys are useful:
 {"type":"config","name":"Optimize unit test runtime","metricName":"total_ms","metricUnit":"ms","bestDirection":"lower"}
 ```
 
+### Status Marker (session lifecycle)
+
+Immediately after the config header, append a status record, and append a new one whenever the session's lifecycle state changes:
+
+```json
+{"type":"status","state":"running","timestamp":1700000000}
+```
+
+- `state` — one of: `running` (session active — this also covers a backstop check-in, which pauses for confirmation without concluding), `done` (concluded normally, e.g. `max_iterations` reached or the user ended an unbounded run), `cancelled` (user stopped it), `wall` (consecutive-failure wall), `blocked` (needs user input).
+- `backstop_ack` (optional, integer) — on a `running` marker only: records the 200-run backstop boundary the loop paused at for a check-in, so a later dispatch doesn't re-pause at the same boundary. See the backstop rule under Stopping Conditions.
+- Write `running` at setup; write `done`/`wall`/`blocked` when the loop stops; write `cancelled` in the Cancel procedure.
+- **Resume rule:** a session is resumable only if the **last** `status` record is `running` (or there is no status record — legacy logs). If the last status is `cancelled`/`done`/`wall`, do not silently resume — a concluded session stays concluded until the user explicitly restarts it.
+- This marker is a deliberate non-run record; it does not have a `run` number and is skipped by run-counting. It is agent-written, not runtime-enforced, so a hard crash could leave a stale `running` — acceptable, since the alternative (treating any log as active forever) is worse.
+
 ### Experiment Results (appended after each run)
 
 Each experiment appends one JSON line:
@@ -246,6 +279,13 @@ bash ${CLAUDE_SKILL_DIR}/scripts/log-experiment.sh \
 
 Valid statuses: `keep`, `discard`, `crash`, `checks_failed`
 
+### Logging Invariants
+
+Keep the log analyzable and the run-counts/streaks trustworthy:
+- **Never log `keep` when correctness checks failed** — the status is `checks_failed` regardless of how good the metric looks. (This also keeps the failure streak honest: `checks_failed` breaks a discard/crash streak, so mislabeling it as `keep` would hide a stuck segment.)
+- **Append-only** — never rewrite or delete past run entries; the log is the reconstructible source of truth. (The `{"type":"status",...}` marker is the one intentional non-run append; it is expected, not a violation.)
+- **Secondary-metric consistency** — once a secondary metric name has appeared in `metrics`, include it in every later run; if it is genuinely unavailable for a run, say so in ASI rather than silently dropping it.
+
 ## Segments (Multi-Phase Sessions)
 
 When the optimization target changes mid-session (different benchmark, metric, or workload):
@@ -259,14 +299,15 @@ This allows a single session to evolve — e.g., first optimize compilation spee
 
 ## Resuming After Context Reset
 
-If `autoresearch.jsonl` and `autoresearch.md` exist in the working directory:
+If `autoresearch.jsonl` exists in the working directory (the authoritative session state):
 
-1. Read `autoresearch.md` for full context (goal, metrics, files, constraints, learnings)
-2. Read `autoresearch.jsonl` to see all past experiments, current best, and ASI annotations
+1. Read `autoresearch.jsonl` to see all past experiments, current best, ASI annotations, and the **last `{"type":"status",...}` record**. If that last status is `cancelled`/`done`/`wall`, the session is concluded — do not silently resume; confirm with the user first. Only resume when the last status is `running` (or there is no status record — a legacy log).
+2. Read `autoresearch.md` for full context (goal, metrics, files, constraints, learnings). If it is missing (it is gitignored, so a fresh clone won't have it), reconstruct it from the JSONL config header and git log.
 3. Check `autoresearch.ideas.md` if it exists — prune stale entries, experiment with remaining ideas
 4. Check git log to verify current branch state matches expected state
-5. Resume the loop from where it left off — no re-setup needed
-6. **Resume immediately** — do not ask "should I continue?"
+5. Re-check the Stopping Conditions (max_iterations, backstop, failure streak) from the log before continuing
+6. Resume the loop from where it left off — no re-setup needed
+7. **Resume immediately** if the session is active — do not ask "should I continue?"
 
 ## Confidence Scoring
 
@@ -305,10 +346,11 @@ When the user asks to cancel or stop autoresearch:
 1. Finish the current experiment cycle if one is running
 2. Read `autoresearch.jsonl` to count total experiments and results
 3. Report a summary: goal, total runs, kept improvements, best metric
-4. Remove `.claude/autoresearch-ai-plugin.local.md` if it exists
+4. Append a `{"type":"status","state":"cancelled","timestamp":...}` marker to `autoresearch.jsonl` — this is what makes the session stay stopped instead of being silently resumed later.
 5. Do NOT delete `autoresearch.jsonl` or `autoresearch.md` — they contain valuable history
-6. Do NOT revert any kept commits — the improvements are real
-7. Inform the user they can resume later with `/autoresearch`
+6. Do NOT delete `.claude/autoresearch-ai-plugin.local.md` — it is the user's persistent per-project config; the `cancelled` marker (not config removal) is what ends the session
+7. Do NOT revert any kept commits — the improvements are real
+8. Inform the user they can resume later with `/run-autoresearch` (which will see the `cancelled` marker and ask before restarting)
 
 ### Checking Session Status
 
@@ -316,8 +358,8 @@ When the user asks about autoresearch status or progress:
 
 1. Check if `autoresearch.jsonl` exists — if not, report "No active session"
 2. Read `autoresearch.md` for the goal and primary metric
-3. Parse `autoresearch.jsonl` to compute: total runs, kept/discarded/crashed counts, baseline vs best, improvement percentage, confidence score
-4. Display a formatted summary
+3. Parse `autoresearch.jsonl` to compute: total runs, kept/discarded/crashed counts, baseline vs best, improvement percentage, confidence score, and the **lifecycle state** — the `state` of the last `{"type":"status",...}` record (`running`/`done`/`cancelled`/`wall`/`blocked`)
+4. Display a formatted summary, including whether the session is active (last status `running`) or concluded
 
 ## Additional Resources
 
