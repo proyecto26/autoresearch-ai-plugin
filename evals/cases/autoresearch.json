@@ -49,6 +49,8 @@
         "autoresearch.md and autoresearch.sh are created, and autoresearch.sh emits METRIC name=value lines including the primary runtime metric",
         "The benchmark script is actually executed at least once via a Bash tool call to measure the baseline",
         "autoresearch.jsonl contains a config header line with \"type\":\"config\" and \"bestDirection\":\"lower\", followed by a baseline entry with a numeric metric value",
+        "A running status marker (a line with \"type\":\"status\" and \"state\":\"running\") is written to autoresearch.jsonl after the config header (F4)",
+        ".gitignore is updated to ignore the living session files autoresearch.jsonl and autoresearch.md (and the setup commit, if any, does not include autoresearch.md) — F5 revert-safety",
         "The agent stops after recording the baseline as instructed, instead of continuing the experiment loop"
       ]
     },

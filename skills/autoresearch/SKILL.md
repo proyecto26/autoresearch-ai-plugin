@@ -16,7 +16,7 @@ description: >-
   improve any measurable metric — even if they don't use the word "autoresearch".
   Also use when the user asks about the status of a running autoresearch session
   or wants to cancel/stop one.
-version: 0.3.1
+version: 0.3.2
 argument-hint: "[optimization goal]"
 ---
 
@@ -95,7 +95,7 @@ The user might be asleep, away from the computer, or expects you to work indefin
 Each iteration:
 
 ```
-0. Check stopping conditions (see "Stopping Conditions" below). If any is met, stop and report — do not start another experiment.
+0. Check stopping conditions: run `bash ${CLAUDE_SKILL_DIR}/scripts/session-status.sh --file autoresearch.jsonl [--max-iterations N]` and act on its VERDICT (concluded|max_iterations|wall|backstop|continue). Only continue if VERDICT=continue. (See "Stopping Conditions" for what the script computes and the spec it implements.)
 1. Read current git state and autoresearch.md
 2. Choose an experimental change (informed by past results and ASI notes)
 3. Edit files in scope
@@ -158,7 +158,7 @@ The `> 8` boundary is deliberately high so a fruitful overnight loop with the oc
 
 ## Stopping Conditions
 
-Check these at the top of every iteration (loop step 0). All counts are **recomputed from `autoresearch.jsonl`** each time, scoped to the **current segment**, so they survive context resets:
+Compute these with `bash ${CLAUDE_SKILL_DIR}/scripts/session-status.sh --file autoresearch.jsonl [--max-iterations N]` at the top of every iteration (loop step 0) — it emits `SEGMENT`, `SEGMENT_RUNS`, `STREAK`, `LAST_STATUS`, `BACKSTOP_ACK`, and a single `VERDICT`, all **recomputed from `autoresearch.jsonl`** and scoped to the **current segment** (delimited by config headers), so they survive context resets. The rules the script implements — and which you follow directly if the script is unavailable:
 
 - **Current-segment run count** = the number of run entries (`status` in `keep|discard|crash|checks_failed`) whose `segment` equals the current segment. Count the matching entries directly — do **not** use the `run` number for this, since `run` is a session-wide sequential counter that keeps climbing across segments (segment 1 might start at `run` 51), so it would over-count a fresh segment.
 - **`max_iterations` reached** — if `max_iterations` > 0 (from `.claude/autoresearch-ai-plugin.local.md`) and the current-segment run count ≥ it → stop (`Status: DONE (max_iterations)`). `0` or absent = unlimited.
@@ -378,3 +378,4 @@ When the user asks about autoresearch status or progress:
 
 - **`scripts/parse-metrics.sh`** — Extract METRIC lines from benchmark output
 - **`scripts/log-experiment.sh`** — Append an experiment result to autoresearch.jsonl
+- **`scripts/session-status.sh`** — Compute the stopping-condition state (SEGMENT_RUNS, STREAK, LAST_STATUS, BACKSTOP_ACK, VERDICT) from autoresearch.jsonl

@@ -97,55 +97,107 @@ rm -f "$TESTFILE"
 echo ""
 echo "--- protect-files.sh ---"
 
-echo -n "T12 block existing prepare.py: "
-touch /tmp/prepare.py
-RC=0; echo '{"tool_input":{"file_path":"/tmp/prepare.py"}}' | bash hooks/protect-files.sh 2>/dev/null || RC=$?
+SESS=$(mktemp -d)   # a stand-in session root
+
+echo -n "T12 block existing prepare.py at session root: "
+touch "$SESS/prepare.py"
+RC=0; echo "{\"cwd\":\"$SESS\",\"tool_input\":{\"file_path\":\"$SESS/prepare.py\"}}" | bash hooks/protect-files.sh 2>/dev/null || RC=$?
 [[ $RC -eq 2 ]] && pass || fail "exit=$RC"
-rm -f /tmp/prepare.py
+rm -f "$SESS/prepare.py"
 
 echo -n "T13 allow new prepare.py (setup): "
-RC=0; echo '{"tool_input":{"file_path":"/tmp/new/prepare.py"}}' | bash hooks/protect-files.sh 2>/dev/null || RC=$?
+RC=0; echo "{\"cwd\":\"$SESS\",\"tool_input\":{\"file_path\":\"$SESS/prepare.py\"}}" | bash hooks/protect-files.sh 2>/dev/null || RC=$?
 [[ $RC -eq 0 ]] && pass || fail "exit=$RC"
 
-echo -n "T14 allow src/data/prepare.py (subdirectory): "
-mkdir -p /tmp/src/data && touch /tmp/src/data/prepare.py
-RC=0; echo '{"tool_input":{"file_path":"/tmp/src/data/prepare.py"}}' | bash hooks/protect-files.sh 2>/dev/null || RC=$?
-[[ $RC -eq 0 ]] && pass || fail "exit=$RC"
-rm -rf /tmp/src
+echo -n "T14 allow nested src/models/prepare.py (false-positive fix): "
+mkdir -p "$SESS/src/models" && touch "$SESS/src/models/prepare.py"
+RC=0; echo "{\"cwd\":\"$SESS\",\"tool_input\":{\"file_path\":\"$SESS/src/models/prepare.py\"}}" | bash hooks/protect-files.sh 2>/dev/null || RC=$?
+[[ $RC -eq 0 ]] && pass || fail "exit=$RC (nested legit file must NOT be blocked)"
+rm -rf "$SESS/src"
 
-echo -n "T15 block existing autoresearch.sh: "
-touch /tmp/autoresearch.sh
-RC=0; echo '{"tool_input":{"file_path":"/tmp/autoresearch.sh"}}' | bash hooks/protect-files.sh 2>/dev/null || RC=$?
+echo -n "T15 block existing autoresearch.sh at root: "
+touch "$SESS/autoresearch.sh"
+RC=0; echo "{\"cwd\":\"$SESS\",\"tool_input\":{\"file_path\":\"$SESS/autoresearch.sh\"}}" | bash hooks/protect-files.sh 2>/dev/null || RC=$?
 [[ $RC -eq 2 ]] && pass || fail "exit=$RC"
-rm -f /tmp/autoresearch.sh
+rm -f "$SESS/autoresearch.sh"
 
 echo -n "T16 allow train.py (always editable): "
-touch /tmp/train.py
-RC=0; echo '{"tool_input":{"file_path":"/tmp/train.py"}}' | bash hooks/protect-files.sh 2>/dev/null || RC=$?
+touch "$SESS/train.py"
+RC=0; echo "{\"cwd\":\"$SESS\",\"tool_input\":{\"file_path\":\"$SESS/train.py\"}}" | bash hooks/protect-files.sh 2>/dev/null || RC=$?
 [[ $RC -eq 0 ]] && pass || fail "exit=$RC"
-rm -f /tmp/train.py
+rm -f "$SESS/train.py"
 
 echo -n "T17 allow no file_path: "
 RC=0; echo '{"tool_input":{"command":"ls"}}' | bash hooks/protect-files.sh 2>/dev/null || RC=$?
 [[ $RC -eq 0 ]] && pass || fail "exit=$RC"
 
-echo -n "T18 block existing log-experiment.sh: "
-touch /tmp/log-experiment.sh
-RC=0; echo '{"tool_input":{"file_path":"/tmp/log-experiment.sh"}}' | bash hooks/protect-files.sh 2>/dev/null || RC=$?
+echo -n "T18 block plugin log-experiment.sh under plugin root: "
+RC=0; echo "{\"cwd\":\"$SESS\",\"tool_input\":{\"file_path\":\"$PLUGIN_DIR/skills/autoresearch/scripts/log-experiment.sh\"}}" | bash hooks/protect-files.sh 2>/dev/null || RC=$?
 [[ $RC -eq 2 ]] && pass || fail "exit=$RC"
-rm -f /tmp/log-experiment.sh
 
 echo -n "T19 stderr feedback on block: "
-touch /tmp/prepare.py
-ERR=$(echo '{"tool_input":{"file_path":"/tmp/prepare.py"}}' | bash hooks/protect-files.sh 2>&1 >/dev/null || true)
+touch "$SESS/prepare.py"
+ERR=$(echo "{\"cwd\":\"$SESS\",\"tool_input\":{\"file_path\":\"$SESS/prepare.py\"}}" | bash hooks/protect-files.sh 2>&1 >/dev/null || true)
 [[ "$ERR" == *"READ-ONLY"* ]] && pass || fail "$ERR"
-rm -f /tmp/prepare.py
+rm -f "$SESS/prepare.py"
 
 echo -n "T20 JSON with spaces (POSIX sed): "
-touch /tmp/prepare.py
-RC=0; echo '{"tool_input": { "file_path" : "/tmp/prepare.py" }}' | bash hooks/protect-files.sh 2>/dev/null || RC=$?
+touch "$SESS/prepare.py"
+RC=0; echo "{ \"cwd\" : \"$SESS\" , \"tool_input\": { \"file_path\" : \"$SESS/prepare.py\" }}" | bash hooks/protect-files.sh 2>/dev/null || RC=$?
 [[ $RC -eq 2 ]] && pass || fail "exit=$RC"
-rm -f /tmp/prepare.py
+rm -f "$SESS/prepare.py"
+
+# --- protect-files.sh: defect regressions + edge cases (v0.3.2) ---
+echo -n "T20a block prepare.py when root dir is named 'app' (false-negative fix): "
+mkdir -p "$SESS/app" && touch "$SESS/app/prepare.py"
+RC=0; echo "{\"cwd\":\"$SESS/app\",\"tool_input\":{\"file_path\":\"$SESS/app/prepare.py\"}}" | bash hooks/protect-files.sh 2>/dev/null || RC=$?
+[[ $RC -eq 2 ]] && pass || fail "exit=$RC (root named 'app' must still be protected)"
+rm -rf "$SESS/app"
+
+echo -n "T20b allow unrelated log-experiment.sh in a user project (not under plugin): "
+touch "$SESS/log-experiment.sh"
+RC=0; echo "{\"cwd\":\"$SESS\",\"tool_input\":{\"file_path\":\"$SESS/log-experiment.sh\"}}" | bash hooks/protect-files.sh 2>/dev/null || RC=$?
+[[ $RC -eq 0 ]] && pass || fail "exit=$RC (a user's own same-named file must NOT be blocked)"
+rm -f "$SESS/log-experiment.sh"
+
+echo -n "T20c relative file_path resolved against cwd: "
+touch "$SESS/prepare.py"
+RC=0; echo "{\"cwd\":\"$SESS\",\"tool_input\":{\"file_path\":\"prepare.py\"}}" | bash hooks/protect-files.sh 2>/dev/null || RC=$?
+[[ $RC -eq 2 ]] && pass || fail "exit=$RC"
+rm -f "$SESS/prepare.py"
+
+echo -n "T20d trailing-slash cwd handled: "
+touch "$SESS/prepare.py"
+RC=0; echo "{\"cwd\":\"$SESS/\",\"tool_input\":{\"file_path\":\"$SESS/prepare.py\"}}" | bash hooks/protect-files.sh 2>/dev/null || RC=$?
+[[ $RC -eq 2 ]] && pass || fail "exit=$RC"
+rm -f "$SESS/prepare.py"
+
+echo -n "T20e block session-status.sh under plugin root: "
+RC=0; echo "{\"cwd\":\"$SESS\",\"tool_input\":{\"file_path\":\"$PLUGIN_DIR/skills/autoresearch/scripts/session-status.sh\"}}" | bash hooks/protect-files.sh 2>/dev/null || RC=$?
+[[ $RC -eq 2 ]] && pass || fail "exit=$RC"
+
+echo -n "T20f block path traversal to a root file (src/../prepare.py): "
+mkdir -p "$SESS/src" && touch "$SESS/prepare.py"
+RC=0; echo "{\"cwd\":\"$SESS\",\"tool_input\":{\"file_path\":\"$SESS/src/../prepare.py\"}}" | bash hooks/protect-files.sh 2>/dev/null || RC=$?
+[[ $RC -eq 2 ]] && pass || fail "exit=$RC (traversal must not dodge protection)"
+rm -rf "$SESS/src" "$SESS/prepare.py"
+
+echo -n "T20g block Windows-style backslash path at root: "
+touch "$SESS/prepare.py"
+WIN_CWD="${SESS//\//\\}"; WIN_FILE="${WIN_CWD}\\prepare.py"
+RC=0; echo "{\"cwd\":\"$WIN_CWD\",\"tool_input\":{\"file_path\":\"$WIN_FILE\"}}" | bash hooks/protect-files.sh 2>/dev/null || RC=$?
+[[ $RC -eq 2 ]] && pass || fail "exit=$RC (backslash path must still be protected)"
+rm -f "$SESS/prepare.py"
+
+echo -n "T20h existing prepare.py OUTSIDE the session root is allowed (location check, not fast-path): "
+mkdir -p "$SESS/sub" && touch "$SESS/prepare.py"
+# cwd is $SESS/sub; the target EXISTS at $SESS/prepare.py (passes the -f gate), so this
+# must reach the location check and be allowed because its dir ($SESS) != cwd ($SESS/sub).
+RC=0; echo "{\"cwd\":\"$SESS/sub\",\"tool_input\":{\"file_path\":\"$SESS/prepare.py\"}}" | bash hooks/protect-files.sh 2>/dev/null || RC=$?
+[[ $RC -eq 0 ]] && pass || fail "exit=$RC (existing file outside cwd must be allowed by location)"
+rm -rf "$SESS/sub" "$SESS/prepare.py"
+
+rm -rf "$SESS"
 
 # --- Python assets ---
 echo ""
@@ -175,6 +227,15 @@ bash -n skills/autoresearch/scripts/parse-metrics.sh 2>/dev/null && pass || fail
 
 echo -n "T27 protect-files.sh syntax: "
 bash -n hooks/protect-files.sh 2>/dev/null && pass || fail "syntax error"
+
+echo -n "T28 session-status.sh syntax: "
+bash -n skills/autoresearch/scripts/session-status.sh 2>/dev/null && pass || fail "syntax error"
+
+# --- session-status.sh unit tests (uses $PY, pass/fail from above) ---
+source tests/test-session-status.sh
+
+# --- eval-harness self-tests (validate-skills.js / run-evals.js) ---
+source tests/test-eval-harness.sh
 
 echo ""
 echo "========================================="

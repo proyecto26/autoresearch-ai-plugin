@@ -14,7 +14,7 @@ description: >-
   "H100 training", "autonomous model training", "consumer GPU training",
   "low VRAM training". Always use this skill when the user wants to autonomously
   optimize any ML training metric.
-version: 0.3.1
+version: 0.3.2
 argument-hint: "[run tag or GPU description]"
 ---
 
@@ -80,7 +80,7 @@ The user might be asleep, away from the computer, or expects you to work indefin
 Each iteration:
 
 ```
-0. Check stopping conditions (see "Stopping Conditions" below). If any is met, stop and report — do not start another experiment.
+0. Check stopping conditions: run `bash ${CLAUDE_SKILL_DIR}/scripts/session-status.sh --file autoresearch.jsonl [--max-iterations N]` and act on its VERDICT (concluded|max_iterations|wall|backstop|continue). Only continue if VERDICT=continue. (See "Stopping Conditions".)
 1. Read current git state and autoresearch.md
 2. Choose an experimental change to train.py (informed by past results and ASI notes)
 3. Edit train.py (the ONLY editable file)
@@ -98,7 +98,7 @@ Each iteration:
 
 ### Stopping Conditions
 
-Check these at the top of every iteration (loop step 0). All counts are **recomputed from `autoresearch.jsonl`** each time, scoped to the **current segment** (see Segments below), so they survive context resets:
+Compute these with `bash ${CLAUDE_SKILL_DIR}/scripts/session-status.sh --file autoresearch.jsonl [--max-iterations N]` at the top of every iteration (loop step 0) — it emits `SEGMENT_RUNS`, `STREAK`, `LAST_STATUS`, `BACKSTOP_ACK`, and a single `VERDICT`, all **recomputed from `autoresearch.jsonl`** and scoped to the **current segment** (see Segments below), so they survive context resets. The rules it implements — which you follow directly if the script is unavailable:
 
 - **Current-segment run count** = number of run entries (`status` in `keep|discard|crash|checks_failed`) whose `segment` equals the current segment. Count the matching entries directly — do **not** use the `run` number, which is a session-wide sequential counter that keeps climbing across segments and would over-count a fresh segment.
 - **`max_iterations` reached** — if `max_iterations` > 0 (from `.claude/autoresearch-ai-plugin.local.md`, see the generic `autoresearch` skill's config section) and the current-segment run count ≥ it → stop (`Status: DONE (max_iterations)`). `0` or absent = unlimited.
@@ -329,6 +329,7 @@ echo "METRIC mfu_percent=$mfu"
 - **`references/gpu-training-guide.md`** — Detailed GPU setup, CUDA configuration, OOM troubleshooting, BPB formula, and performance tuning
 - **`scripts/parse-metrics.sh`** — Extract METRIC lines from benchmark output
 - **`scripts/log-experiment.sh`** — Append experiment results to autoresearch.jsonl
+- **`scripts/session-status.sh`** — Compute the stopping-condition state (SEGMENT_RUNS, STREAK, LAST_STATUS, BACKSTOP_ACK, VERDICT) from autoresearch.jsonl
 - **`assets/prepare.py`** — Data preparation (download, tokenizer, dataloader, evaluation)
 - **`assets/train.py`** — Model architecture and training loop
 - **`assets/program.md`** — Self-contained agent instructions for the ML loop

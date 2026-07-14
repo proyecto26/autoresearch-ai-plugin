@@ -12,6 +12,10 @@
 # Force LF for JavaScript (eval runner scripts run on all OSes)
 *.js text eol=lf
 
+# Force LF for YAML (CI workflows)
+*.yml text eol=lf
+*.yaml text eol=lf
+
 # Force LF for Python and config files
 *.py text eol=lf
 *.toml text eol=lf
